@@ -48,7 +48,7 @@ export function AccountModal({ open, onClose, account, onSave, onDelete }: Props
               <Input id="starting_balance" name="starting_balance" type="number" step="0.01" defaultValue={account?.starting_balance} required />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="current_balance">Current Balance ($)</Label>
+              <Label htmlFor="current_balance">Starting Balance ($)</Label>
               <Input id="current_balance" name="current_balance" type="number" step="0.01" defaultValue={account?.current_balance ?? undefined} />
             </div>
           </div>

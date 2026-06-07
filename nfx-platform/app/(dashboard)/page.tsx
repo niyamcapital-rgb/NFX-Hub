@@ -7,49 +7,73 @@ export default async function DashboardPage() {
   const trades = await getTrades()
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Performance overview across all accounts</p>
+    <div className="space-y-10">
+
+      {/* Page header */}
+      <div className="flex items-end justify-between border-b border-border/30 pb-6">
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50">Overview</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
+        </div>
+        <p className="text-sm text-muted-foreground">{trades.length} total trades</p>
       </div>
 
+      {/* Metric cards */}
       <MetricsStrip trades={trades} />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card className="border-border/50">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-medium">Trade Calendar</CardTitle>
+      {/* Calendar + Recent trades */}
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_380px]">
+        <Card className="border-border/40">
+          <CardHeader className="border-b border-border/30 pb-4">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Trade Calendar
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-5">
             <TradeCalendar trades={trades} />
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-medium">Recent Trades</CardTitle>
+        <Card className="border-border/40">
+          <CardHeader className="border-b border-border/30 pb-4">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Recent Trades
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {trades.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No trades logged yet.</p>
+              <p className="py-10 text-center text-sm text-muted-foreground">No trades logged yet.</p>
             ) : (
-              <div className="space-y-2">
-                {trades.slice(0, 8).map((t) => (
-                  <div key={t.id} className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{t.symbol}</span>
-                      <span className="text-xs text-muted-foreground">{t.open_date}</span>
-                    </div>
+              <div className="space-y-1.5">
+                {trades.slice(0, 10).map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.03]"
+                  >
                     <div className="flex items-center gap-3">
-                      {t.risk_reward && (
+                      <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                        t.result === 'win'  ? 'bg-emerald-400' :
+                        t.result === 'loss' ? 'bg-red-400' :
+                        'bg-zinc-500'
+                      }`} />
+                      <div>
+                        <p className="text-sm font-medium leading-none">{t.symbol}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground/60">
+                          {t.close_date ?? t.open_date}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-right">
+                      {t.risk_reward != null && (
                         <span className="text-xs text-muted-foreground">{t.risk_reward}R</span>
                       )}
-                      <span className={`text-xs font-semibold ${
-                        t.result === 'win' ? 'text-emerald-400' :
-                        t.result === 'loss' ? 'text-red-400' :
-                        'text-zinc-400'
+                      <span className={`w-16 rounded-md border px-2 py-0.5 text-center text-[10px] font-semibold uppercase tracking-wide ${
+                        t.result === 'win'       ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400' :
+                        t.result === 'loss'      ? 'border-red-500/20    bg-red-500/10    text-red-400'     :
+                        t.result === 'breakeven' ? 'border-zinc-500/20   bg-zinc-500/10   text-zinc-400'    :
+                                                   'border-blue-500/20   bg-blue-500/10   text-blue-400'
                       }`}>
-                        {t.result?.toUpperCase() ?? 'PENDING'}
+                        {t.result ?? 'pending'}
                       </span>
                     </div>
                   </div>
@@ -59,6 +83,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
     </div>
   )
 }

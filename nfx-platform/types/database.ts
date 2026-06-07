@@ -6,6 +6,7 @@ export type AccountPhase  = 'P1' | 'P2' | 'Funded'
 export type AccountGroup  = 'A' | 'B' | 'C' | 'D' | 'E'
 export type TradeType     = 'Swing' | 'Intraswing' | 'Intraday' | 'Manipulation'
 export type TradeResult   = 'win' | 'loss' | 'breakeven' | 'pending'
+export type LegType       = 'Placeholder' | 'Swing' | 'ScaleIn'
 
 export interface Profile {
   id: string
@@ -75,11 +76,14 @@ export interface Trade {
   new_weekly_outlook_id: string | null
   created_at: string
   updated_at: string
+  risk_factor: number | null                // only set on child trades
+  leg_type: LegType | null                 // only set on child trades
   // Joined relations (not in DB row directly)
   trade_accounts?: { account_id: string; accounts?: Account }[]
   trade_confluences?: { confluence_id: string; confluences?: Confluence }[]
   trade_groups?: { grp: AccountGroup }[]
   trade_legs?: TradeLeg[]
+  children?: Trade[]                        // child scale-in trades (joined server-side)
 }
 
 export interface TradeLeg {
@@ -191,7 +195,8 @@ export interface Database {
           scale_in_enabled: boolean; model: string | null
           entry_type: 'market' | 'limit' | null; entry_price: number | null
           stop_loss: number | null; take_profit: number | null
-          risk_reward: number | null; result: TradeResult | null
+          risk_reward: number | null; risk_factor: number | null; leg_type: LegType | null
+          result: TradeResult | null
           pnl: number | null; summary: string | null
           dxy_chart_url: string | null; entry_chart_url: string | null
           new_daily_outlook_id: string | null; new_weekly_outlook_id: string | null
@@ -205,7 +210,8 @@ export interface Database {
           scale_in_enabled?: boolean; model?: string | null
           entry_type?: 'market' | 'limit' | null; entry_price?: number | null
           stop_loss?: number | null; take_profit?: number | null
-          risk_reward?: number | null; result?: TradeResult | null
+          risk_reward?: number | null; risk_factor?: number | null; leg_type?: LegType | null
+          result?: TradeResult | null
           pnl?: number | null; summary?: string | null
           dxy_chart_url?: string | null; entry_chart_url?: string | null
           new_daily_outlook_id?: string | null; new_weekly_outlook_id?: string | null
@@ -218,7 +224,8 @@ export interface Database {
           scale_in_enabled?: boolean; model?: string | null
           entry_type?: 'market' | 'limit' | null; entry_price?: number | null
           stop_loss?: number | null; take_profit?: number | null
-          risk_reward?: number | null; result?: TradeResult | null
+          risk_reward?: number | null; risk_factor?: number | null; leg_type?: LegType | null
+          result?: TradeResult | null
           pnl?: number | null; summary?: string | null
           dxy_chart_url?: string | null; entry_chart_url?: string | null
           new_daily_outlook_id?: string | null; new_weekly_outlook_id?: string | null

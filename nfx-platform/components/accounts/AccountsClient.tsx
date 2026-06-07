@@ -9,7 +9,7 @@ import { AccountCard } from './AccountCard'
 import { AccountModal } from './AccountModal'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { upsertAccount, deleteAccount } from '@/app/actions/account-actions'
-import type { Account, AccountGroup, AccountPhase, AccountStatus } from '@/types/database'
+import type { Account, AccountGroup, AccountPhase, AccountStatus, Trade } from '@/types/database'
 
 const GROUPS: (AccountGroup | 'All')[] = ['All', 'A', 'B', 'C', 'D', 'E']
 
@@ -37,9 +37,9 @@ function buildOptimistic(formData: FormData, existingId?: string | null): Accoun
   }
 }
 
-interface Props { initialAccounts: Account[] }
+interface Props { initialAccounts: Account[]; trades: Trade[] }
 
-export function AccountsClient({ initialAccounts }: Props) {
+export function AccountsClient({ initialAccounts, trades }: Props) {
   const [, startTransition] = useTransition()
   const [optimistic, dispatch] = useOptimistic(
     initialAccounts,
@@ -116,7 +116,7 @@ export function AccountsClient({ initialAccounts }: Props) {
         >
           {filtered.map((a) => (
             <motion.div key={a.id} variants={staggerItem}>
-              <AccountCard account={a} onClick={openEdit} />
+              <AccountCard account={a} trades={trades} onClick={openEdit} />
             </motion.div>
           ))}
         </motion.div>

@@ -23,12 +23,12 @@ export function TradeCalendar({ trades, onDayClick }: Props) {
     const yr = target.getFullYear()
     const mo = target.getMonth()
 
-    // Map trades by date string
+    // Map trades by close date — pending trades (no close_date) are excluded
     const byDate: Record<string, Trade[]> = {}
     trades.forEach((t) => {
-      const key = t.open_date
-      if (!byDate[key]) byDate[key] = []
-      byDate[key].push(t)
+      if (!t.close_date) return
+      if (!byDate[t.close_date]) byDate[t.close_date] = []
+      byDate[t.close_date].push(t)
     })
 
     const firstDay   = new Date(yr, mo, 1).getDay()

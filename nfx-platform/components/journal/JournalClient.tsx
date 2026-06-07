@@ -4,20 +4,23 @@ import { useOptimistic, useTransition, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, LayoutGrid, List, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { TradeCard } from './TradeCard'
+import { TradeCampaignDashboard } from './TradeCampaignDashboard'
 import { TradeTable } from './TradeTable'
 import { TradeModal } from './TradeModal'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { createTrade, updateTrade, deleteTrade } from '@/app/actions/trade-actions'
-import type { Trade, Account, Confluence, Symbol, TradeType, TradeResult } from '@/types/database'
+import type { Trade, Account, Confluence, LegType, Symbol, TradeType, TradeResult } from '@/types/database'
 
 type ViewMode = 'gallery' | 'list'
 
 type OptAction =
-  | { type: 'add'; trade: Trade }
-  | { type: 'update'; trade: Trade }
-  | { type: 'delete'; id: string }
+  | { type: 'add';          trade: Trade }
+  | { type: 'update';       trade: Trade }
+  | { type: 'delete';       id: string }
+  | { type: 'add-child';    parentId: string; child: Trade }
+  | { type: 'update-child'; parentId: string; child: Trade }
+  | { type: 'delete-child'; parentId: string; childId: string }
 
 function buildOptimisticTrade(
   formData: FormData,
@@ -28,34 +31,37 @@ function buildOptimisticTrade(
   const accountIds    = formData.getAll('account_ids[]') as string[]
   const confluenceIds = formData.getAll('confluence_ids[]') as string[]
   return {
-    id: existingId || `opt-${Date.now()}`,
-    user_id: '',
-    account_id: null,
-    parent_trade_id: null,
-    open_date:    (formData.get('open_date') as string) || new Date().toISOString().split('T')[0],
-    close_date:   (formData.get('close_date') as string) || null,
-    symbol:       (formData.get('symbol') as string) || '',
-    direction:    null,
-    trade_type:   (formData.get('trade_type') as TradeType) || null,
+    id:               existingId || `opt-${Date.now()}`,
+    user_id:          '',
+    account_id:       null,
+    parent_trade_id:  (formData.get('parent_trade_id') as string) || null,
+    risk_factor:      formData.get('risk_factor') ? parseFloat(formData.get('risk_factor') as string) : null,
+    leg_type:         (formData.get('leg_type') as LegType) || null,
+    open_date:        (formData.get('open_date') as string) || new Date().toISOString().split('T')[0],
+    close_date:       (formData.get('close_date') as string) || null,
+    symbol:           (formData.get('symbol') as string) || '',
+    direction:        null,
+    trade_type:       (formData.get('trade_type') as TradeType) || null,
     scale_in_enabled: formData.get('scale_in_enabled') === 'true',
-    model:        null,
-    entry_type:   null,
-    entry_price:  null,
-    stop_loss:    null,
-    take_profit:  null,
-    risk_reward:  formData.get('risk_reward') ? parseFloat(formData.get('risk_reward') as string) : null,
-    result:       ((formData.get('result') as TradeResult) || 'pending') as TradeResult,
-    pnl:          formData.get('pnl') ? parseFloat(formData.get('pnl') as string) : null,
-    summary:      (formData.get('summary') as string) || null,
-    dxy_chart_url:   (formData.get('dxy_chart_url') as string) || null,
-    entry_chart_url: (formData.get('entry_chart_url') as string) || null,
+    model:            null,
+    entry_type:       null,
+    entry_price:      null,
+    stop_loss:        null,
+    take_profit:      null,
+    risk_reward:      formData.get('risk_reward') ? parseFloat(formData.get('risk_reward') as string) : null,
+    result:           ((formData.get('result') as TradeResult) || 'pending') as TradeResult,
+    pnl:              formData.get('pnl') ? parseFloat(formData.get('pnl') as string) : null,
+    summary:          (formData.get('summary') as string) || null,
+    dxy_chart_url:    (formData.get('dxy_chart_url') as string) || null,
+    entry_chart_url:  (formData.get('entry_chart_url') as string) || null,
     new_daily_outlook_id:  null,
     new_weekly_outlook_id: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at:  new Date().toISOString(),
+    updated_at:  new Date().toISOString(),
+    children:    [],
     trade_accounts:    accountIds.map((aid) => ({ account_id: aid, accounts: accounts.find((a) => a.id === aid) })),
     trade_confluences: confluenceIds.map((cid) => ({ confluence_id: cid, confluences: confluences.find((c) => c.id === cid) })),
-    trade_groups: [],
+    trade_groups:      [],
   }
 }
 
@@ -71,24 +77,64 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
   const [optimistic, dispatch] = useOptimistic(
     initialTrades,
     (state: Trade[], action: OptAction) => {
-      if (action.type === 'add')    return [action.trade, ...state]
-      if (action.type === 'update') return state.map((t) => (t.id === action.trade.id ? action.trade : t))
-      return state.filter((t) => t.id !== action.id)
+      switch (action.type) {
+        case 'add':    return [action.trade, ...state]
+        case 'update': return state.map((t) => t.id === action.trade.id ? action.trade : t)
+        case 'delete': return state.filter((t) => t.id !== action.id)
+        case 'add-child':
+          return state.map((t) => t.id === action.parentId
+            ? { ...t, children: [...(t.children ?? []), action.child] }
+            : t)
+        case 'update-child':
+          return state.map((t) => t.id === action.parentId
+            ? { ...t, children: (t.children ?? []).map((c) => c.id === action.child.id ? action.child : c) }
+            : t)
+        case 'delete-child':
+          return state.map((t) => t.id === action.parentId
+            ? { ...t, children: (t.children ?? []).filter((c) => c.id !== action.childId) }
+            : t)
+      }
     },
   )
 
-  const [view, setView]                     = useState<ViewMode>('gallery')
-  const [tradeModalOpen, setTradeModalOpen] = useState(false)
-  const [editing, setEditing]               = useState<Trade | null>(null)
-  const [dateFilter, setDateFilter]         = useState<string | null>(null)
+  const [view, setView]                         = useState<ViewMode>('gallery')
+  const [tradeModalOpen, setTradeModalOpen]     = useState(false)
+  const [editing, setEditing]                   = useState<Trade | null>(null)
+  const [childModalOpen, setChildModalOpen]     = useState(false)
+  const [editingChild, setEditingChild]         = useState<Trade | null>(null)
+  const [childParentId, setChildParentId]       = useState<string | null>(null)
+  const [childParentSymbol, setChildParentSymbol] = useState<string | null>(null)
+  const [childSaveError, setChildSaveError]     = useState<string | null>(null)
+  const [dateFilter, setDateFilter]             = useState<string | null>(null)
 
   const trades = dateFilter
     ? optimistic.filter((t) => t.open_date === dateFilter)
     : optimistic
 
-  function openCreate() { setEditing(null); setTradeModalOpen(true) }
+  function openCreate()    { setEditing(null); setTradeModalOpen(true) }
   function openEdit(t: Trade) { setEditing(t); setTradeModalOpen(true) }
-  function closeModal() { setTradeModalOpen(false); setEditing(null) }
+  function closeModal()    { setTradeModalOpen(false); setEditing(null) }
+
+  function openAddChild(parentId: string, parentSymbol: string) {
+    setChildParentId(parentId)
+    setChildParentSymbol(parentSymbol)
+    setEditingChild(null)
+    setChildSaveError(null)
+    setChildModalOpen(true)
+  }
+  function openEditChild(child: Trade) {
+    setChildParentId(child.parent_trade_id)
+    setChildParentSymbol(null)
+    setEditingChild(child)
+    setChildSaveError(null)
+    setChildModalOpen(true)
+  }
+  function closeChildModal() {
+    setChildModalOpen(false)
+    setEditingChild(null)
+    setChildParentId(null)
+    setChildParentSymbol(null)
+  }
 
   function handleSave(formData: FormData) {
     const id = formData.get('id') as string | null
@@ -97,18 +143,42 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
     startTransition(async () => {
       dispatch(id
         ? { type: 'update', trade: optimisticTrade }
-        : { type: 'add',    trade: optimisticTrade },
-      )
+        : { type: 'add',    trade: optimisticTrade })
       if (id) await updateTrade(id, formData)
       else    await createTrade(formData)
     })
   }
 
+  function handleChildSave(formData: FormData) {
+    const id       = formData.get('id') as string | null
+    const parentId = formData.get('parent_trade_id') as string
+    const child    = buildOptimisticTrade(formData, accounts, confluences, id)
+    setChildSaveError(null)
+    closeChildModal()
+    startTransition(async () => {
+      dispatch(id
+        ? { type: 'update-child', parentId, child }
+        : { type: 'add-child',   parentId, child })
+      const result = id ? await updateTrade(id, formData) : await createTrade(formData)
+      if (result && 'error' in result && result.error) {
+        setChildSaveError(result.error)
+      }
+    })
+  }
+
   function handleDelete(trade: Trade) {
-    closeModal()
+    if (tradeModalOpen) closeModal()
     startTransition(async () => {
       dispatch({ type: 'delete', id: trade.id })
       await deleteTrade(trade.id)
+    })
+  }
+
+  function handleChildDelete(child: Trade) {
+    const parentId = child.parent_trade_id!
+    startTransition(async () => {
+      dispatch({ type: 'delete-child', parentId, childId: child.id })
+      await deleteTrade(child.id)
     })
   }
 
@@ -157,10 +227,7 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
             </button>
           </div>
 
-          <Button
-            onClick={openCreate}
-            className="rounded-xl shadow-lg shadow-primary/25"
-          >
+          <Button onClick={openCreate} className="rounded-xl shadow-lg shadow-primary/25">
             <Plus className="h-4 w-4" />
             Log Trade
           </Button>
@@ -188,7 +255,14 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {trades.map((t) => (
                   <motion.div key={t.id} variants={staggerItem}>
-                    <TradeCard trade={t} onClick={openEdit} />
+                    <TradeCampaignDashboard
+                      trade={t}
+                      onEdit={() => openEdit(t)}
+                      onEditChild={openEditChild}
+                      onAddChild={(sym) => openAddChild(t.id, sym)}
+                      onDelete={() => handleDelete(t)}
+                      onDeleteChild={handleChildDelete}
+                    />
                   </motion.div>
                 ))}
               </div>
@@ -206,6 +280,15 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
         )}
       </AnimatePresence>
 
+      {/* Scale-in save error banner */}
+      {childSaveError && (
+        <div className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/[0.08] px-4 py-2.5">
+          <p className="text-xs text-red-400">Scale-in failed to save: {childSaveError}</p>
+          <button onClick={() => setChildSaveError(null)} className="ml-4 text-xs text-red-400/60 hover:text-red-400">Dismiss</button>
+        </div>
+      )}
+
+      {/* Root trade modal */}
       <TradeModal
         key={editing?.id ?? 'new'}
         open={tradeModalOpen}
@@ -216,6 +299,21 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
         symbols={symbols}
         onSave={handleSave}
         onDelete={handleDelete}
+      />
+
+      {/* Child (scale-in) trade modal */}
+      <TradeModal
+        key={editingChild?.id ?? `child-new-${childParentId}`}
+        open={childModalOpen}
+        onClose={closeChildModal}
+        trade={editingChild}
+        accounts={accounts}
+        confluences={confluences}
+        symbols={symbols}
+        onSave={handleChildSave}
+        onDelete={(child) => { closeChildModal(); handleChildDelete(child) }}
+        parentTradeId={childParentId ?? undefined}
+        parentSymbol={childParentSymbol ?? undefined}
       />
     </div>
   )
