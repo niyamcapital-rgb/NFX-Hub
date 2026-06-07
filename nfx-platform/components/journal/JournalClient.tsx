@@ -2,12 +2,13 @@
 
 import { useOptimistic, useTransition, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, LayoutGrid, List } from 'lucide-react'
+import { Plus, LayoutGrid, List, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TradeCard } from './TradeCard'
 import { TradeTable } from './TradeTable'
 import { TradeModal } from './TradeModal'
 import { staggerContainer, staggerItem } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 import { createTrade, updateTrade, deleteTrade } from '@/app/actions/trade-actions'
 import type { Trade, Account, Confluence, Symbol, TradeType, TradeResult } from '@/types/database'
 
@@ -113,10 +114,11 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Page header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Trade Journal</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight">Trade Journal</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {optimistic.length} execution{optimistic.length !== 1 ? 's' : ''} logged
             {dateFilter && (
               <> · filtered to {dateFilter}&nbsp;
@@ -125,25 +127,42 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-border">
-            <Button
-              variant="ghost" size="sm"
-              className={`rounded-r-none ${view === 'gallery' ? 'bg-secondary' : ''}`}
+
+        <div className="flex items-center gap-3">
+          {/* iOS segmented control */}
+          <div className="flex rounded-xl bg-white/[0.05] p-1">
+            <button
               onClick={() => setView('gallery')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200',
+                view === 'gallery'
+                  ? 'bg-white/10 text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
             >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost" size="sm"
-              className={`rounded-l-none ${view === 'list' ? 'bg-secondary' : ''}`}
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Gallery
+            </button>
+            <button
               onClick={() => setView('list')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200',
+                view === 'list'
+                  ? 'bg-white/10 text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
             >
-              <List className="h-4 w-4" />
-            </Button>
+              <List className="h-3.5 w-3.5" />
+              List
+            </button>
           </div>
-          <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" /> Log Trade
+
+          <Button
+            onClick={openCreate}
+            className="rounded-xl shadow-lg shadow-primary/25"
+          >
+            <Plus className="h-4 w-4" />
+            Log Trade
           </Button>
         </div>
       </div>
@@ -158,9 +177,12 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
           >
             {trades.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-24 text-center">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-24 text-center">
+                <div className="mb-4 rounded-full bg-white/[0.04] p-5">
+                  <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+                </div>
                 <p className="text-sm font-medium text-muted-foreground">No trades yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">Click "Log Trade" to record your first execution</p>
+                <p className="mt-1 text-xs text-muted-foreground/60">Click "Log Trade" to record your first execution</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">

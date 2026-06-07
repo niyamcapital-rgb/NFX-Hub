@@ -16,7 +16,8 @@ export async function getTrades(): Promise<Trade[]> {
       *,
       trade_accounts(account_id, accounts(id, account_name, firm_name, grp)),
       trade_confluences(confluence_id, confluences(id, name, color)),
-      trade_groups(grp)
+      trade_groups(grp),
+      trade_legs(id, risk_factor, target_rr, created_at)
     `)
     .eq('user_id', user.id)
     .is('parent_trade_id', null)

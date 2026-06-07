@@ -79,6 +79,15 @@ export interface Trade {
   trade_accounts?: { account_id: string; accounts?: Account }[]
   trade_confluences?: { confluence_id: string; confluences?: Confluence }[]
   trade_groups?: { grp: AccountGroup }[]
+  trade_legs?: TradeLeg[]
+}
+
+export interface TradeLeg {
+  id: string
+  trade_id: string
+  risk_factor: number
+  target_rr: number
+  created_at: string
 }
 
 export interface WeeklyOutlook {
@@ -277,6 +286,14 @@ export interface Database {
         Update: { trade_id?: string; grp?: AccountGroup }
         Relationships: [
           { foreignKeyName: "trade_groups_trade_id_fkey"; columns: ["trade_id"]; isOneToOne: false; referencedRelation: "trades"; referencedColumns: ["id"] }
+        ]
+      }
+      trade_legs: {
+        Row:    { id: string; trade_id: string; risk_factor: number; target_rr: number; created_at: string }
+        Insert: { id?: string; trade_id: string; risk_factor: number; target_rr: number; created_at?: string }
+        Update: { risk_factor?: number; target_rr?: number }
+        Relationships: [
+          { foreignKeyName: "trade_legs_trade_id_fkey"; columns: ["trade_id"]; isOneToOne: false; referencedRelation: "trades"; referencedColumns: ["id"] }
         ]
       }
     }

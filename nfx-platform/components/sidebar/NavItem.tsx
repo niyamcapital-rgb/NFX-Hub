@@ -20,17 +20,18 @@ export function NavItem({ href, label, icon: Icon }: NavItemProps) {
     <Link
       href={href}
       className={cn(
-        'relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm',
+        'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors',
         isActive
           ? 'font-medium text-primary'
-          : 'font-normal text-muted-foreground hover:text-foreground'
+          : 'font-normal text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
       )}
     >
-      {/* Shared layout pill — slides smoothly between active routes */}
+      {/* Shared layout pill — spring-slides between active routes */}
       {isActive && (
         <motion.div
           layoutId="nav-active-pill"
-          className="absolute inset-0 rounded-md bg-primary/10"
+          className="absolute inset-0 rounded-xl bg-primary/10"
+          style={{ boxShadow: '0 0 0 1px rgba(59,130,246,0.15)' }}
           transition={{ type: 'spring', duration: 0.35, bounce: 0.12 }}
         />
       )}

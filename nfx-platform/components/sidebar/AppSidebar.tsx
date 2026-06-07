@@ -22,8 +22,10 @@ function SidebarContent() {
       <div className="mb-6 flex items-center gap-3 px-2">
         <Image src="/logo.png" alt="NFX Hub" width={32} height={32} className="shrink-0 object-contain" />
         <div>
-          <p className="text-sm font-semibold tracking-tight text-foreground">NFX Hub</p>
-          <p className="text-[10px] text-muted-foreground">Trading Workspace</p>
+          <p className="text-sm font-light italic tracking-tight text-foreground leading-tight">
+            The ultimate<br />
+            traders hub.
+          </p>
         </div>
       </div>
 
@@ -35,13 +37,13 @@ function SidebarContent() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border pt-3">
+      <div className="border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
         <form action={signOut}>
           <Button
             variant="ghost"
             size="sm"
             type="submit"
-            className="w-full justify-start gap-3 px-3 text-muted-foreground hover:text-foreground"
+            className="w-full justify-start gap-3 rounded-xl px-3 text-muted-foreground hover:bg-white/5 hover:text-foreground"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -55,7 +57,13 @@ function SidebarContent() {
 export function AppSidebar() {
   return (
     <>
-      <aside className="hidden h-screen w-[220px] min-w-[220px] flex-col border-r border-border bg-card lg:flex">
+      <aside
+        className="hidden h-screen w-[220px] min-w-[220px] flex-col border-r backdrop-blur-xl lg:flex"
+        style={{
+          background: 'rgba(1, 9, 22, 0.88)',
+          borderColor: 'rgba(255, 255, 255, 0.07)',
+        }}
+      >
         <SidebarContent />
       </aside>
       <MobileMenuTrigger />

@@ -26,14 +26,16 @@ export async function createSymbol(name: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Unauthorized' }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('symbols')
     .insert({ user_id: user.id, name: name.trim().toUpperCase() })
+    .select()
+    .single()
 
   if (error) return { error: error.message }
   revalidatePath('/settings')
   revalidatePath('/journal')
-  return { success: true }
+  return { success: true, id: data.id as string }
 }
 
 export async function deleteSymbol(id: string) {
