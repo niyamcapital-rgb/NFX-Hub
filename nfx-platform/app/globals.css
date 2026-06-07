@@ -1,0 +1,109 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * @theme inline maps CSS custom properties onto Tailwind's design system.
+ * Tailwind v4 reads these at build time — no tailwind.config.ts needed.
+ */
+@theme inline {
+  --color-background:         var(--background);
+  --color-foreground:         var(--foreground);
+  --color-card:               var(--card);
+  --color-card-foreground:    var(--card-foreground);
+  --color-popover:            var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary:            var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:          var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:              var(--muted);
+  --color-muted-foreground:   var(--muted-foreground);
+  --color-accent:             var(--accent);
+  --color-accent-foreground:  var(--accent-foreground);
+  --color-destructive:        var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:             var(--border);
+  --color-input:              var(--input);
+  --color-ring:               var(--ring);
+
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * NFX is a dark-only application.
+ * All semantic color tokens are defined once on :root.
+ * Sourced from legacy_prototype css/main.css palette.
+ */
+:root {
+  --radius: 0.5rem;
+
+  /* Strong custom easing curves — built-in easings lack punch */
+  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --background:           #000815;
+  --foreground:           #ffffff;
+
+  --card:                 #010916;
+  --card-foreground:      #ffffff;
+
+  --popover:              #010916;
+  --popover-foreground:   #ffffff;
+
+  --primary:              #3b82f6;
+  --primary-foreground:   #ffffff;
+
+  --secondary:            #181b26;
+  --secondary-foreground: #ffffff;
+
+  --muted:                #181b26;
+  --muted-foreground:     #8a8f9c;
+
+  --accent:               #181b26;
+  --accent-foreground:    #ffffff;
+
+  --destructive:          #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border:               #0a1b2e;
+  --input:                #0a1b2e;
+  --ring:                 #3b82f6;
+}
+
+* {
+  border-color: var(--border);
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Button press feedback — scale(0.97) confirms the interface heard the user (Emil) */
+button:not([disabled]),
+[role="button"]:not([disabled]) {
+  transition: transform 160ms var(--ease-out), color 150ms ease, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+
+button:not([disabled]):active,
+[role="button"]:not([disabled]):active {
+  transform: scale(0.97);
+}
+
+/* Gate hover-only animations to pointer devices — touch triggers hover on tap (Emil) */
+@media not (hover: hover) {
+  .hover-lift {
+    transform: none !important;
+  }
+}
