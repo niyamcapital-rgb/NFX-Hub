@@ -33,9 +33,17 @@ export function TradeCard({ trade, onClick }: Props) {
   const hasChart     = trade.entry_chart_url || trade.dxy_chart_url
   const rs           = RESULT_STYLES[(trade.result ?? 'pending') as keyof typeof RESULT_STYLES] ?? RESULT_STYLES.pending
   const legs         = trade.trade_legs ?? []
-  const isScaleIn    = trade.scale_in_enabled && legs.length > 0
-  const cumRR        = isScaleIn ? calcCumulativeRR(trade.risk_reward, legs) : null
-  const totalRisk    = isScaleIn ? calcTotalRisk(legs) : null   // 1.0 + Σrisk_factor
+  const children     = trade.children ?? []
+  // Prefer children (separate trade rows) over trade_legs for the total R:R
+  const hasLegs      = children.length > 0 || (trade.scale_in_enabled && legs.length > 0)
+  const cumRR        = children.length > 0
+    ? (trade.risk_reward !== null && trade.risk_reward !== undefined
+        ? trade.risk_reward + children.reduce((s, c) => s + (c.risk_factor ?? 1) * (c.risk_reward ?? 0), 0)
+        : null)
+    : (trade.scale_in_enabled && legs.length > 0 ? calcCumulativeRR(trade.risk_reward, legs) : null)
+  const totalRisk    = hasLegs ? calcTotalRisk(children.length > 0
+    ? children.map((c) => ({ risk_factor: c.risk_factor ?? 1, target_rr: c.risk_reward ?? 0 }))
+    : legs) : null
   const displayRR    = cumRR ?? trade.risk_reward
 
   return (
@@ -66,10 +74,10 @@ export function TradeCard({ trade, onClick }: Props) {
           </div>
 
           {/* Scale-in badge */}
-          {trade.scale_in_enabled && legs.length > 0 && (
+          {hasLegs && (
             <div className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5">
               <GitBranch className="h-3 w-3 text-primary" />
-              <span className="text-[10px] font-semibold text-primary">{legs.length}L</span>
+              <span className="text-[10px] font-semibold text-primary">{(children.length || legs.length) + 1}L</span>
             </div>
           )}
         </div>

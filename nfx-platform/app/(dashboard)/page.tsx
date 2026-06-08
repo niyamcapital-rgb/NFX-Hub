@@ -29,7 +29,7 @@ export default async function DashboardPage() {
       <CapitalStrip accounts={accounts} />
 
       {/* Calendar + right column */}
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_380px] xl:items-start">
         <Card className="border-border/40">
           <CardHeader className="border-b border-border/30 pb-4">
             <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">

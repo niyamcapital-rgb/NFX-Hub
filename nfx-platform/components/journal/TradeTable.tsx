@@ -1,6 +1,7 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Pencil, Trash2 } from 'lucide-react'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -34,22 +35,39 @@ const RESULT_LABEL: Record<string, string> = {
   pending:   'Pending',
 }
 
+function calcTotalRR(trade: Trade): number | null {
+  const base = trade.risk_reward
+  if (base === null || base === undefined) return null
+  const children = trade.children ?? []
+  if (children.length === 0) return base
+  return base + children.reduce((sum, c) => sum + (c.risk_factor ?? 1) * (c.risk_reward ?? 0), 0)
+}
+
 interface RowProps {
   trade: Trade
   onEdit: () => void
   onDelete: () => void
+  onEditChild: (child: Trade) => void
 }
 
-function TradeRow({ trade, onEdit, onDelete }: RowProps) {
+function TradeRow({ trade, onEdit, onDelete, onEditChild }: RowProps) {
   const { fmt } = useDateFormat()
+  const [hovered, setHovered] = useState(false)
 
+  const children    = trade.children ?? []
+  const hasChildren = children.length > 0
   const accounts    = trade.trade_accounts?.map((ta) => ta.accounts?.account_name).filter(Boolean) ?? []
   const confluences = trade.trade_confluences?.map((tc) => tc.confluences!).filter(Boolean) ?? []
   const result      = trade.result ?? 'pending'
   const pnl         = trade.pnl
+  const totalRR     = calcTotalRR(trade)
 
   return (
-    <motion.div variants={staggerItem}>
+    <motion.div
+      variants={staggerItem}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <div
         className="flex cursor-pointer items-stretch overflow-hidden rounded-xl border border-border/50 bg-card transition-colors duration-150 hover:border-border"
         onClick={onEdit}
@@ -73,6 +91,11 @@ function TradeRow({ trade, onEdit, onDelete }: RowProps) {
               <span className={cn('rounded border px-2 py-0.5 text-[10px] font-semibold', RESULT_CHIP[result] ?? RESULT_CHIP.pending)}>
                 {RESULT_LABEL[result] ?? 'Pending'}
               </span>
+              {hasChildren && (
+                <span className="rounded border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  {children.length + 1}L
+                </span>
+              )}
               {confluences.slice(0, 4).map((c) => (
                 <span
                   key={c!.id}
@@ -95,7 +118,6 @@ function TradeRow({ trade, onEdit, onDelete }: RowProps) {
 
           {/* Right: P&L + RR + actions */}
           <div className="flex shrink-0 items-center gap-3">
-            {/* P&L and R:R */}
             <div className="text-right">
               {pnl != null ? (
                 <p className={cn('text-base font-bold tabular-nums', pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
@@ -104,12 +126,14 @@ function TradeRow({ trade, onEdit, onDelete }: RowProps) {
               ) : (
                 <p className="text-sm text-muted-foreground/40">No P&L</p>
               )}
-              {trade.risk_reward != null && (
-                <p className="text-[11px] text-muted-foreground/50">R:R {Number(trade.risk_reward).toFixed(2)}</p>
+              {totalRR !== null && (
+                <p className="text-[11px] text-muted-foreground/50">
+                  {hasChildren && <span className="mr-0.5 text-primary/60">Σ</span>}
+                  {totalRR.toFixed(2)}R
+                </p>
               )}
             </div>
 
-            {/* Action icons — stop propagation so they don't open edit */}
             <div
               className="flex items-center gap-0.5"
               onClick={(e) => e.stopPropagation()}
@@ -130,6 +154,78 @@ function TradeRow({ trade, onEdit, onDelete }: RowProps) {
           </div>
         </div>
       </div>
+
+      {/* Leg breakdown — expands in flow so cards below are pushed down */}
+      <AnimatePresence initial={false}>
+        {hovered && hasChildren && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
+            exit={{ height: 0, opacity: 0, transition: { duration: 0.12 } }}
+            className="overflow-hidden"
+          >
+            <div
+              className="mt-1 overflow-hidden rounded-xl border"
+              style={{ background: 'rgba(13,13,13,0.98)', borderColor: 'rgba(255,255,255,0.08)' }}
+            >
+              {/* Header */}
+              <div
+                className="grid grid-cols-3 gap-4 px-4 py-2"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40">Leg</span>
+                <span className="text-center text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40">Risk</span>
+                <span className="text-right text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40">R:R</span>
+              </div>
+
+              {/* Parent (initial entry) */}
+              <div
+                className="grid cursor-pointer grid-cols-3 gap-4 px-4 py-2.5 transition-colors duration-100 hover:bg-white/[0.03]"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                onClick={onEdit}
+              >
+                <span className="text-xs font-medium text-muted-foreground">{trade.trade_type ?? 'Initial'}</span>
+                <span className="text-center font-mono text-xs text-muted-foreground/60">1.00×</span>
+                <span className="text-right font-mono text-xs">
+                  {trade.risk_reward !== null ? `${Number(trade.risk_reward).toFixed(2)}R` : '—'}
+                </span>
+              </div>
+
+              {/* Child legs */}
+              {children.map((child, i) => (
+                <div
+                  key={child.id}
+                  className="grid cursor-pointer grid-cols-3 gap-4 px-4 py-2.5 transition-colors duration-100 hover:bg-white/[0.03]"
+                  style={{ borderBottom: i < children.length - 1 ? '1px solid rgba(255,255,255,0.04)' : undefined }}
+                  onClick={() => onEditChild(child)}
+                >
+                  <span className="text-xs font-medium capitalize text-muted-foreground">
+                    {child.leg_type ?? child.trade_type ?? 'Leg'}
+                  </span>
+                  <span className="text-center font-mono text-xs text-muted-foreground/60">
+                    {(child.risk_factor ?? 1).toFixed(2)}×
+                  </span>
+                  <span className="text-right font-mono text-xs">
+                    {child.risk_reward !== null ? `${Number(child.risk_reward).toFixed(2)}R` : '—'}
+                  </span>
+                </div>
+              ))}
+
+              {/* Total row */}
+              <div
+                className="grid grid-cols-3 gap-4 px-4 py-2.5"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.025)' }}
+              >
+                <span className="text-xs font-semibold">Total</span>
+                <span />
+                <span className="text-right font-mono text-sm font-bold text-primary">
+                  {totalRR !== null ? `${totalRR.toFixed(2)}R` : '—'}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -157,6 +253,7 @@ export function TradeTable({ trades, onRowClick, onDelete }: Props) {
           trade={t}
           onEdit={() => onRowClick(t)}
           onDelete={() => onDelete(t)}
+          onEditChild={(child) => onRowClick(child)}
         />
       ))}
     </motion.div>

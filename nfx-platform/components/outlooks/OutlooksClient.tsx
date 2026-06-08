@@ -78,6 +78,7 @@ export function OutlooksClient({ initialWeekly, initialDaily }: Props) {
     },
   )
 
+  const [activeTab,       setActiveTab]       = useState<'weekly' | 'daily'>('weekly')
   const [weeklyModalOpen, setWeeklyModalOpen] = useState(false)
   const [dailyModalOpen,  setDailyModalOpen]  = useState(false)
   const [editingWeekly,   setEditingWeekly]   = useState<WeeklyOutlook | null>(null)
@@ -140,22 +141,20 @@ export function OutlooksClient({ initialWeekly, initialDaily }: Props) {
         <p className="mt-1 text-sm text-muted-foreground">Weekly and daily market forecasting system</p>
       </div>
 
-      <Tabs defaultValue="weekly">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'weekly' | 'daily')}>
         <div className="flex items-center justify-between">
           <TabsList>
             <TabsTrigger value="weekly">Weekly</TabsTrigger>
             <TabsTrigger value="daily">Daily</TabsTrigger>
           </TabsList>
+          <Button onClick={activeTab === 'weekly' ? openWeeklyCreate : openDailyCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            {activeTab === 'weekly' ? 'New Weekly Outlook' : 'New Daily Outlook'}
+          </Button>
         </div>
 
         {/* Weekly tab */}
         <TabsContent value="weekly" className="mt-6">
-          <div className="mb-4 flex justify-end">
-            <Button onClick={openWeeklyCreate}>
-              <Plus className="mr-2 h-4 w-4" /> New Weekly Outlook
-            </Button>
-          </div>
-
           {optimisticWeekly.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-20 text-center">
               <p className="text-sm font-medium text-muted-foreground">No weekly outlooks yet</p>
@@ -178,12 +177,6 @@ export function OutlooksClient({ initialWeekly, initialDaily }: Props) {
 
         {/* Daily tab */}
         <TabsContent value="daily" className="mt-6">
-          <div className="mb-4 flex justify-end">
-            <Button onClick={openDailyCreate}>
-              <Plus className="mr-2 h-4 w-4" /> New Daily Outlook
-            </Button>
-          </div>
-
           {optimisticDaily.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-20 text-center">
               <p className="text-sm font-medium text-muted-foreground">No daily outlooks yet</p>

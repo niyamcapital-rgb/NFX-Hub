@@ -1,7 +1,7 @@
 // Hand-authored types for NFX Hub schema (migrations 001 + 002)
 // Regenerate with: supabase gen types typescript --project-id <id>
 
-export type AccountStatus = 'active' | 'passed' | 'blown' | 'paused'
+export type AccountStatus = 'active' | 'inactive'
 export type AccountPhase  = 'P1' | 'P2' | 'Funded'
 export type AccountGroup  = 'A' | 'B' | 'C' | 'D' | 'E'
 export type TradeType     = 'Swing' | 'Intraswing' | 'Intraday' | 'Manipulation' | 'Placeholder'

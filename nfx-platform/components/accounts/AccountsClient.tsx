@@ -19,7 +19,7 @@ function filterAccounts(accounts: Account[], tab: TabFilter): Account[] {
   switch (tab) {
     case 'Challenges': return accounts.filter((a) => a.phase === 'P1' || a.phase === 'P2')
     case 'Funded':     return accounts.filter((a) => a.phase === 'Funded')
-    case 'Inactive':   return accounts.filter((a) => a.status === 'blown' || a.status === 'paused')
+    case 'Inactive':   return accounts.filter((a) => a.status === 'inactive')
     default:           return accounts
   }
 }

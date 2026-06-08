@@ -26,10 +26,8 @@ interface Props {
 }
 
 const statusColor: Record<string, string> = {
-  active: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10',
-  passed: 'text-blue-400 border-blue-500/20 bg-blue-500/10',
-  blown:  'text-red-400 border-red-500/20 bg-red-500/10',
-  paused: 'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
+  active:   'text-emerald-400 border-emerald-500/20 bg-emerald-500/10',
+  inactive: 'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
 }
 
 
@@ -81,7 +79,7 @@ export function AccountCard({ account, trades, onClick }: Props) {
   const currentGain  = computedBalance - account.starting_balance
   const remaining    = targetGain - currentGain
   const remainingPct = remaining > 0 ? (remaining / account.starting_balance) * 100 : 0
-  const isNearPass   = remaining > 0 && remainingPct <= proximityThreshold
+  const isNearPass   = account.status === 'active' && remaining > 0 && remainingPct <= proximityThreshold
 
   // ── Reference lines — % of account size (stored values, always relative to 0%) ──
   const ptRef    =  account.profit_target_pct   // e.g. +10
@@ -151,20 +149,20 @@ export function AccountCard({ account, trades, onClick }: Props) {
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex items-center gap-1">
-              <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusColor[account.status]}`}>
-                {account.status}
-              </span>
               {isNearPass && (
                 <span className="flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
                   <Target className="h-2.5 w-2.5" />
                   Close to passing
                 </span>
               )}
+              <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusColor[account.status]}`}>
+                {account.status}
+              </span>
             </div>
             {(account.phase || account.grp) && (
               <div className="flex gap-1">
                 {account.phase && <Badge variant="outline" className="h-4 px-1.5 text-[10px]">{account.phase}</Badge>}
-                {account.grp   && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">Grp {account.grp}</Badge>}
+                {account.grp   && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{account.grp}</Badge>}
               </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,10 +17,13 @@ interface Props {
 }
 
 export function AccountModal({ open, onClose, account, onSave, onDelete }: Props) {
+  const [status, setStatus] = useState<AccountStatus>(account?.status ?? 'active')
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     if (account?.id) fd.set('id', account.id)
+    fd.set('status', status)
     onSave(fd)
   }
 
@@ -86,17 +90,17 @@ export function AccountModal({ open, onClose, account, onSave, onDelete }: Props
                 <SelectTrigger><SelectValue placeholder="Group" /></SelectTrigger>
                 <SelectContent>
                   {(['A', 'B', 'C', 'D', 'E'] as AccountGroup[]).map((g) => (
-                    <SelectItem key={g} value={g}>Group {g}</SelectItem>
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Status</Label>
-              <Select name="status" defaultValue={account?.status ?? 'active'}>
+              <Select value={status} onValueChange={(v) => setStatus(v as AccountStatus)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(['active', 'passed', 'blown', 'paused'] as AccountStatus[]).map((s) => (
+                  {(['active', 'inactive'] as AccountStatus[]).map((s) => (
                     <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
                   ))}
                 </SelectContent>

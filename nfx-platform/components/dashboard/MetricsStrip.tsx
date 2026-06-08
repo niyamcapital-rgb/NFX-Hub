@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { TrendingUp, Target, BarChart2, DollarSign } from 'lucide-react'
+import { TrendingUp, Target, BarChart2, Zap } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import type { Trade } from '@/types/database'
@@ -15,19 +15,25 @@ export function MetricsStrip({ trades }: Props) {
   const avgRR       = completed.length
     ? (completed.reduce((s, t) => s + (t.risk_reward ?? 0), 0) / completed.length).toFixed(2)
     : '0.00'
-  const totalPnl    = trades.reduce((s, t) => s + (t.pnl ?? 0), 0)
+  // Wins add their R:R, losses subtract 1R, breakevens add 0
+  const totalRR = completed.reduce((s, t) => {
+    if (t.result === 'win')  return s + (t.risk_reward ?? 0)
+    if (t.result === 'loss') return s - 1
+    return s
+  }, 0)
+  const totalRRStr = (totalRR >= 0 ? '+' : '') + totalRR.toFixed(2) + 'R'
 
   const metrics = [
     { label: 'Total Trades',    value: trades.length.toString(),  sub: `${completed.length} completed`,  icon: BarChart2,  color: 'text-blue-400',    accent: 'rgba(59,130,246,0.7)' },
     { label: 'Win Rate',        value: `${winRate}%`,             sub: `${wins.length} wins`,             icon: Target,     color: 'text-emerald-400', accent: 'rgba(16,185,129,0.7)' },
     { label: 'Avg Risk:Reward', value: `${avgRR}R`,               sub: 'across settled trades',           icon: TrendingUp, color: 'text-amber-400',   accent: 'rgba(245,158,11,0.7)' },
     {
-      label: 'Total P&L',
-      value: totalPnl >= 0 ? `+$${totalPnl.toFixed(0)}` : `-$${Math.abs(totalPnl).toFixed(0)}`,
-      sub: 'realized P&L',
-      icon: DollarSign,
-      color: totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400',
-      accent: totalPnl >= 0 ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)',
+      label: 'Total R:R',
+      value: totalRRStr,
+      sub: 'wins add R:R · losses subtract 1R',
+      icon: Zap,
+      color: totalRR >= 0 ? 'text-emerald-400' : 'text-red-400',
+      accent: totalRR >= 0 ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)',
     },
   ]
 

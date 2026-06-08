@@ -1,6 +1,6 @@
 'use client'
 
-import { TrendingUp, RotateCcw } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { useDateFormat } from '@/lib/date-format'
@@ -28,6 +28,12 @@ interface GroupSignal {
 }
 
 
+function progressToTarget(account: Account, computedBalance: number): number {
+  const targetGain = account.starting_balance * (account.profit_target_pct / 100)
+  if (targetGain <= 0) return 0
+  return (computedBalance - account.starting_balance) / targetGain
+}
+
 function computeGroups(
   accounts: Account[],
   trades: Trade[],
@@ -45,43 +51,9 @@ function computeGroups(
 
   for (const { phase, label } of GROUPS) {
     const groupAccounts = accounts.filter(
-      (a) => a.phase === phase && (a.status === 'active' || a.status === 'passed'),
+      (a) => a.phase === phase && a.status === 'active',
     )
     if (groupAccounts.length === 0) continue
-
-    const groupIds = new Set(groupAccounts.map((a) => a.id))
-
-    // Most recent settled trade involving any account in this group
-    const lastGroupTrade =
-      trades.find(
-        (t) =>
-          t.result &&
-          t.result !== 'pending' &&
-          t.trade_accounts?.some((ta) => groupIds.has(ta.account_id)),
-      ) ?? null
-
-    let activeIndex = 0
-
-    if (groupAccounts.length === 1) {
-      // No rotation possible — always index 0
-      activeIndex = 0
-    } else if (lastGroupTrade) {
-      // Find which account in the group was on the last trade
-      const lastAccountId = lastGroupTrade.trade_accounts?.find((ta) =>
-        groupIds.has(ta.account_id),
-      )?.account_id
-      const lastIdx = groupAccounts.findIndex((a) => a.id === lastAccountId)
-
-      if (lastGroupTrade.result === 'loss') {
-        // Rotate to next account on loss
-        activeIndex = lastIdx >= 0 ? (lastIdx + 1) % groupAccounts.length : 0
-      } else {
-        // Win / breakeven — stay on same account
-        activeIndex = lastIdx >= 0 ? lastIdx : 0
-      }
-    }
-
-    const baseRisk = riskByPhase[phase]
 
     // Compute equity-curve balance per account (same source of truth as AccountCard)
     const curveBalances = new Map<string, number>(
@@ -92,16 +64,26 @@ function computeGroups(
       }),
     )
 
-    // If the rotation-selected account is near-pass, also activate the next account
-    const activeAccount = groupAccounts[activeIndex]
-    const { isNearPass: activeIsNearPass } = getNearPassInfo(
-      activeAccount, proximityThreshold, curveBalances.get(activeAccount.id),
-    )
-    const secondaryIndex = activeIsNearPass && groupAccounts.length > 1
-      ? (activeIndex + 1) % groupAccounts.length
-      : -1
+    // Sort by progress towards profit target — highest progress first (closest to passing)
+    const sorted = [...groupAccounts].sort((a, b) => {
+      const pA = progressToTarget(a, curveBalances.get(a.id) ?? a.starting_balance)
+      const pB = progressToTarget(b, curveBalances.get(b.id) ?? b.starting_balance)
+      return pB - pA
+    })
 
-    const accountSignals: AccountSignal[] = groupAccounts.map((account, i) => {
+    const baseRisk = riskByPhase[phase]
+
+    // Primary is always the most advanced account
+    const primary = sorted[0]
+    const { isNearPass: primaryIsNearPass } = getNearPassInfo(
+      primary, proximityThreshold, curveBalances.get(primary.id),
+    )
+
+    // When primary is near-pass, also activate the next most advanced account
+    const activePrimaryId   = primary.id
+    const activeSecondaryId = primaryIsNearPass && sorted.length > 1 ? sorted[1].id : null
+
+    const accountSignals: AccountSignal[] = sorted.map((account) => {
       const lastTrade =
         trades.find(
           (t) =>
@@ -110,7 +92,7 @@ function computeGroups(
             t.trade_accounts?.some((ta) => ta.account_id === account.id),
         ) ?? null
 
-      const isActive = i === activeIndex || i === secondaryIndex
+      const isActive = account.id === activePrimaryId || account.id === activeSecondaryId
       const { isNearPass } = getNearPassInfo(account, proximityThreshold, curveBalances.get(account.id))
       const riskPct = isNearPass ? nearPassRisk(rotationStrategy) : baseRisk
 
@@ -155,10 +137,7 @@ export function TradeSignalCard({ accounts, trades }: Props) {
             <TrendingUp className="h-3.5 w-3.5" />
             Account Rotation
           </CardTitle>
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40">
-            <RotateCcw className="h-3 w-3" />
-            <span>rotate on loss</span>
-          </div>
+          <span className="text-[10px] text-muted-foreground/40">priority by progress</span>
         </div>
       </CardHeader>
 
