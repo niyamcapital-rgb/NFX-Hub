@@ -4,13 +4,12 @@ import type { Database } from '@/types/database'
 
 export async function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (!url || url === 'your-project-url-here') return null
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || url === 'your-project-url-here' || !key) return null
 
   const cookieStore = await cookies()
 
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  return createServerClient<Database>(url, key,
     {
       cookies: {
         getAll() {
