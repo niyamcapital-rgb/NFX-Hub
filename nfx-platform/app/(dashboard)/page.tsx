@@ -1,11 +1,14 @@
 import { getTrades } from '@/app/actions/trade-actions'
+import { getAccounts } from '@/app/actions/account-actions'
 import { MetricsStrip } from '@/components/dashboard/MetricsStrip'
 import { TradeCalendar } from '@/components/dashboard/TradeCalendar'
 import { RecentTradesList } from '@/components/dashboard/RecentTradesList'
+import { CapitalStrip } from '@/components/dashboard/CapitalStrip'
+import { TradeSignalCard } from '@/components/dashboard/TradeSignalCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function DashboardPage() {
-  const trades = await getTrades()
+  const [trades, accounts] = await Promise.all([getTrades(), getAccounts()])
 
   return (
     <div className="space-y-10">
@@ -22,7 +25,10 @@ export default async function DashboardPage() {
       {/* Metric cards */}
       <MetricsStrip trades={trades} />
 
-      {/* Calendar + Recent trades */}
+      {/* Capital overview */}
+      <CapitalStrip accounts={accounts} />
+
+      {/* Calendar + right column */}
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_380px]">
         <Card className="border-border/40">
           <CardHeader className="border-b border-border/30 pb-4">
@@ -35,16 +41,20 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/40">
-          <CardHeader className="border-b border-border/30 pb-4">
-            <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              Recent Trades
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <RecentTradesList trades={trades} />
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-8">
+          <TradeSignalCard accounts={accounts} trades={trades} />
+
+          <Card className="border-border/40">
+            <CardHeader className="border-b border-border/30 pb-4">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Recent Trades
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <RecentTradesList trades={trades} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
     </div>

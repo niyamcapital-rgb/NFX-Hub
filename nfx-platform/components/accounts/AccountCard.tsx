@@ -11,10 +11,12 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts'
+import { Target } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cardHover } from '@/lib/motion'
 import { buildEquityCurve } from '@/lib/equity-curve'
 import { useDateFormat } from '@/lib/date-format'
+import { useTheme } from '@/lib/theme'
 import type { Account, Trade } from '@/types/database'
 
 interface Props {
@@ -64,6 +66,7 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
 }
 
 export function AccountCard({ account, trades, onClick }: Props) {
+  const { proximityThreshold } = useTheme()
   const curve = useMemo(() => buildEquityCurve(account, trades), [account, trades])
 
   // Starting balance = current_balance if set (account state when tracking began),
@@ -72,6 +75,13 @@ export function AccountCard({ account, trades, onClick }: Props) {
 
   // Current balance = last computed equity curve point — auto-updates as trades are logged.
   const computedBalance = curve.at(-1)?.balance ?? startingBalance
+
+  // ── Near-pass detection ────────────────────────────────────────────────────
+  const targetGain   = account.starting_balance * (account.profit_target_pct / 100)
+  const currentGain  = computedBalance - account.starting_balance
+  const remaining    = targetGain - currentGain
+  const remainingPct = remaining > 0 ? (remaining / account.starting_balance) * 100 : 0
+  const isNearPass   = remaining > 0 && remainingPct <= proximityThreshold
 
   // ── Reference lines — % of account size (stored values, always relative to 0%) ──
   const ptRef    =  account.profit_target_pct   // e.g. +10
@@ -110,6 +120,16 @@ export function AccountCard({ account, trades, onClick }: Props) {
   const yPad = Math.max((yMax - yMin) * 0.12, 0.5)
   const domain: [number, number] = [yMin - yPad, yMax + yPad]
 
+  // Gradient with userSpaceOnUse so coordinates are absolute SVG pixels.
+  // This avoids the objectBoundingBox problem where the gradient is relative
+  // to the path's bounding box (actual data range) rather than the domain.
+  // Chart container = h-[110px], margin top=6 bottom=4 → plot y: 6..106.
+  const PLOT_TOP    = 6
+  const PLOT_BOTTOM = 106
+  const zeroFromTop = Math.max(0, Math.min(1, domain[1] / (domain[1] - domain[0])))
+  const zeroOffset  = `${(zeroFromTop * 100).toFixed(3)}%`
+  const gradId      = `acct-${account.id.replace(/-/g, '').slice(0, 12)}`
+
   return (
     <motion.div
       {...cardHover}
@@ -130,9 +150,17 @@ export function AccountCard({ account, trades, onClick }: Props) {
             <h3 className="mt-0.5 text-base font-semibold leading-tight">{account.account_name}</h3>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusColor[account.status]}`}>
-              {account.status}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${statusColor[account.status]}`}>
+                {account.status}
+              </span>
+              {isNearPass && (
+                <span className="flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
+                  <Target className="h-2.5 w-2.5" />
+                  Close to passing
+                </span>
+              )}
+            </div>
             {(account.phase || account.grp) && (
               <div className="flex gap-1">
                 {account.phase && <Badge variant="outline" className="h-4 px-1.5 text-[10px]">{account.phase}</Badge>}
@@ -151,6 +179,20 @@ export function AccountCard({ account, trades, onClick }: Props) {
         <div className="mb-4 h-[110px] w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%" debounce={50}>
             <AreaChart data={curvePct} margin={{ top: 6, right: 6, left: 0, bottom: 4 }}>
+              <defs>
+                {/* userSpaceOnUse: y coords are absolute SVG pixels matching the plot area.
+                    This makes the zero crossing pixel-perfect regardless of actual data range. */}
+                <linearGradient id={`stroke-${gradId}`} x1="0" y1={PLOT_TOP} x2="0" y2={PLOT_BOTTOM} gradientUnits="userSpaceOnUse">
+                  <stop offset={zeroOffset} stopColor="#10b981" stopOpacity={1} />
+                  <stop offset={zeroOffset} stopColor="#ef4444" stopOpacity={1} />
+                </linearGradient>
+                <linearGradient id={`fill-${gradId}`} x1="0" y1={PLOT_TOP} x2="0" y2={PLOT_BOTTOM} gradientUnits="userSpaceOnUse">
+                  <stop offset="0%"         stopColor="#10b981" stopOpacity={0.14} />
+                  <stop offset={zeroOffset} stopColor="#10b981" stopOpacity={0.03} />
+                  <stop offset={zeroOffset} stopColor="#ef4444" stopOpacity={0.03} />
+                  <stop offset="100%"       stopColor="#ef4444" stopOpacity={0.14} />
+                </linearGradient>
+              </defs>
 
               <XAxis dataKey="date" hide />
 
@@ -210,10 +252,10 @@ export function AccountCard({ account, trades, onClick }: Props) {
               <Area
                 type="stepAfter"
                 dataKey="pct"
-                stroke={isUp ? '#10b981' : '#ef4444'}
+                stroke={`url(#stroke-${gradId})`}
                 strokeWidth={1.5}
-                fill={isUp ? '#10b981' : '#ef4444'}
-                fillOpacity={0.08}
+                fill={`url(#fill-${gradId})`}
+                fillOpacity={1}
                 dot={false}
                 activeDot={{ r: 3, fill: isUp ? '#10b981' : '#ef4444', strokeWidth: 0 }}
                 isAnimationActive

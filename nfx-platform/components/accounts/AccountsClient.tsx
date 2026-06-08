@@ -11,7 +11,18 @@ import { staggerContainer, staggerItem } from '@/lib/motion'
 import { upsertAccount, deleteAccount } from '@/app/actions/account-actions'
 import type { Account, AccountGroup, AccountPhase, AccountStatus, Trade } from '@/types/database'
 
-const GROUPS: (AccountGroup | 'All')[] = ['All', 'A', 'B', 'C', 'D', 'E']
+type TabFilter = 'All' | 'Challenges' | 'Funded' | 'Inactive'
+
+const TABS: TabFilter[] = ['All', 'Challenges', 'Funded', 'Inactive']
+
+function filterAccounts(accounts: Account[], tab: TabFilter): Account[] {
+  switch (tab) {
+    case 'Challenges': return accounts.filter((a) => a.phase === 'P1' || a.phase === 'P2')
+    case 'Funded':     return accounts.filter((a) => a.phase === 'Funded')
+    case 'Inactive':   return accounts.filter((a) => a.status === 'blown' || a.status === 'paused')
+    default:           return accounts
+  }
+}
 
 type OptAction =
   | { type: 'upsert'; account: Account }
@@ -39,6 +50,52 @@ function buildOptimistic(formData: FormData, existingId?: string | null): Accoun
 
 interface Props { initialAccounts: Account[]; trades: Trade[] }
 
+interface SectionProps { accounts: Account[]; trades: Trade[]; onEdit: (a: Account) => void }
+
+function ChallengesSections({ accounts, trades, onEdit }: SectionProps) {
+  const p1 = accounts.filter((a) => a.phase === 'P1')
+  const p2 = accounts.filter((a) => a.phase === 'P2')
+
+  const sections: { label: string; sublabel: string; items: Account[] }[] = [
+    { label: 'Phase 1', sublabel: 'Initial evaluation', items: p1 },
+    { label: 'Phase 2', sublabel: 'Verification', items: p2 },
+  ]
+
+  return (
+    <div className="space-y-8">
+      {sections.map(({ label, sublabel, items }) => {
+        if (items.length === 0) return null
+        return (
+          <div key={label} className="space-y-3">
+            <div className="flex items-baseline gap-3">
+              <h2 className="text-sm font-semibold tracking-tight">{label}</h2>
+              <span className="text-xs text-muted-foreground/60">{sublabel}</span>
+              <span className="ml-auto rounded-full border border-border/50 bg-secondary/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {items.length}
+              </span>
+            </div>
+            <div className="h-px bg-border/40" />
+            <motion.div
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+              className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+            >
+              <AnimatePresence mode="popLayout">
+                {items.map((a) => (
+                  <motion.div key={a.id} variants={staggerItem} layout>
+                    <AccountCard account={a} trades={trades} onClick={onEdit} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function AccountsClient({ initialAccounts, trades }: Props) {
   const [, startTransition] = useTransition()
   const [optimistic, dispatch] = useOptimistic(
@@ -54,11 +111,11 @@ export function AccountsClient({ initialAccounts, trades }: Props) {
     },
   )
 
-  const [filter, setFilter] = useState<AccountGroup | 'All'>('All')
+  const [filter, setFilter] = useState<TabFilter>('All')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
 
-  const filtered = filter === 'All' ? optimistic : optimistic.filter((a) => a.grp === filter)
+  const filtered = filterAccounts(optimistic, filter)
 
   function openCreate() { setEditing(null); setModalOpen(true) }
   function openEdit(a: Account) { setEditing(a); setModalOpen(true) }
@@ -94,10 +151,10 @@ export function AccountsClient({ initialAccounts, trades }: Props) {
         </Button>
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as AccountGroup | 'All')}>
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as TabFilter)}>
         <TabsList>
-          {GROUPS.map((g) => (
-            <TabsTrigger key={g} value={g}>{g === 'All' ? 'All' : `Group ${g}`}</TabsTrigger>
+          {TABS.map((t) => (
+            <TabsTrigger key={t} value={t}>{t}</TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
@@ -107,6 +164,8 @@ export function AccountsClient({ initialAccounts, trades }: Props) {
           <p className="text-sm font-medium text-muted-foreground">No accounts yet</p>
           <p className="mt-1 text-xs text-muted-foreground">Click "Add Account" to provision your first funded account</p>
         </div>
+      ) : filter === 'Challenges' ? (
+        <ChallengesSections accounts={filtered} trades={trades} onEdit={openEdit} />
       ) : (
         <motion.div
           key="account-grid"

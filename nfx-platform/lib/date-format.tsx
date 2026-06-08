@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 export type DateFormat = 'YMD' | 'MDY' | 'DMY'
 
 const STORAGE_KEY = 'nfx-date-format'
-const DEFAULT: DateFormat = 'YMD'
+const DEFAULT: DateFormat = 'DMY'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -58,7 +58,7 @@ export function DateFormatProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as DateFormat | null
-    if (stored === 'YMD' || stored === 'MDY') setFormatState(stored)
+    if (stored === 'YMD' || stored === 'MDY' || stored === 'DMY') setFormatState(stored)
   }, [])
 
   function setFormat(f: DateFormat) {

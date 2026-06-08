@@ -2,19 +2,20 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, SlidersHorizontal, Shield, Bell, Camera, ChevronDown, Moon, Sun } from 'lucide-react'
+import { User, SlidersHorizontal, Shield, Bell, Camera, ChevronDown, Moon, Sun, RotateCcw, Crosshair } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useDateFormat, formatDate, type DateFormat } from '@/lib/date-format'
-import { useTheme, ACCENT_PRESETS } from '@/lib/theme'
+import { useTheme, ACCENT_PRESETS, ROTATION_MODES, type RotationMode } from '@/lib/theme'
 
-type Page = 'profile' | 'preferences' | 'security' | 'notifications'
+type Page = 'profile' | 'preferences' | 'execution' | 'security' | 'notifications'
 
 const NAV: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: 'profile',       label: 'Profile',       icon: User },
   { id: 'preferences',   label: 'Preferences',   icon: SlidersHorizontal },
+  { id: 'execution',     label: 'Execution',      icon: Crosshair },
   { id: 'security',      label: 'Security',       icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ]
@@ -38,7 +39,7 @@ function SettingsGroup({
 }) {
   return (
     <div
-      className="rounded-xl border backdrop-blur-lg"
+      className="rounded-xl border"
       style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}
     >
       <div className="border-b px-5 py-4" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -105,6 +106,47 @@ function ProfilePage() {
         </div>
         <Button className="rounded-xl shadow-lg shadow-primary/20">Save changes</Button>
       </SettingsGroup>
+    </div>
+  )
+}
+
+function RiskInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState(() => String(value))
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value
+    if (raw === '') { setText(''); return }
+    // Only allow digits with at most one decimal point and max 2 decimal places
+    if (!/^\d*\.?\d{0,2}$/.test(raw)) return
+    // Block anything >= 5 while typing (still allows "4.99")
+    const num = parseFloat(raw)
+    if (!isNaN(num) && num >= 5) return
+    setText(raw)
+  }
+
+  function handleBlur() {
+    const num = parseFloat(text)
+    if (isNaN(num) || num < 0.1) {
+      // Reset to last committed value if invalid or below minimum
+      setText(String(value))
+    } else {
+      const rounded = Math.round(Math.min(4.99, Math.max(0.1, num)) * 100) / 100
+      setText(String(rounded))
+      onChange(rounded)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className="w-16 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 text-center text-xs font-medium text-foreground focus:border-white/20 focus:outline-none"
+      />
+      <span className="text-xs text-muted-foreground">%</span>
     </div>
   )
 }
@@ -224,6 +266,163 @@ function PreferencesPage() {
           </div>
         </PrefRow>
       </SettingsGroup>
+
+    </div>
+  )
+}
+
+// ── Execution Settings ────────────────────────────────────────────────────────
+
+function ThresholdInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState(() => String(value))
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value
+    if (raw === '') { setText(''); return }
+    if (!/^\d*\.?\d{0,1}$/.test(raw)) return
+    const num = parseFloat(raw)
+    if (!isNaN(num) && num > 50) return
+    setText(raw)
+  }
+  function handleBlur() {
+    const num = parseFloat(text)
+    if (isNaN(num) || num < 1) { setText(String(value)); return }
+    const clamped = Math.round(Math.min(50, Math.max(1, num)) * 10) / 10
+    setText(String(clamped))
+    onChange(clamped)
+  }
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className="w-16 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5 text-center text-xs font-medium text-foreground focus:border-white/20 focus:outline-none"
+      />
+      <span className="text-xs text-muted-foreground">%</span>
+    </div>
+  )
+}
+
+function ExecutionPage() {
+  const {
+    rotationEnabled, setRotationEnabled,
+    rotationMode, setRotationMode,
+    riskP1, setRiskP1,
+    riskP2, setRiskP2,
+    riskLive, setRiskLive,
+    proximityThreshold, setProximityThreshold,
+  } = useTheme()
+  const [rotationOpen, setRotationOpen] = useState(false)
+  const activeRotation = ROTATION_MODES.find((m) => m.value === rotationMode) ?? ROTATION_MODES[1]
+
+  return (
+    <div className="space-y-5">
+
+      {/* Account Rotation */}
+      <SettingsGroup
+        title="Account Rotation"
+        description="Automatically signal which accounts to trade based on your last result"
+      >
+        <PrefRow label="Rotation Mode" description="Show account rotation signals on the dashboard">
+          <button
+            onClick={() => setRotationEnabled(!rotationEnabled)}
+            className={cn(
+              'relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none',
+              rotationEnabled ? 'bg-primary' : 'bg-muted',
+            )}
+          >
+            <span
+              className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow-md"
+              style={{ left: rotationEnabled ? '18px' : '2px', transition: 'left 200ms ease' }}
+            />
+          </button>
+        </PrefRow>
+
+        <AnimatePresence>
+          {rotationEnabled && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
+              exit={{ opacity: 0, y: -4, transition: { duration: 0.12 } }}
+            >
+              <div className="h-px my-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <PrefRow label="Rotation Strategy" description="Determines account switching aggressiveness">
+                <div className="relative">
+                  {rotationOpen && <div className="fixed inset-0 z-40" onClick={() => setRotationOpen(false)} />}
+                  <button
+                    onClick={() => setRotationOpen((o) => !o)}
+                    className={cn(
+                      'flex items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150',
+                      rotationOpen
+                        ? 'border-white/20 bg-white/[0.06] text-foreground'
+                        : 'border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground',
+                    )}
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    {activeRotation.label}
+                    <ChevronDown className={cn('h-3 w-3 transition-transform duration-150', rotationOpen && 'rotate-180')} />
+                  </button>
+                  <AnimatePresence>
+                    {rotationOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.15, ease: [0.23, 1, 0.32, 1] } }}
+                        exit={{ opacity: 0, y: -4, scale: 0.97, transition: { duration: 0.1 } }}
+                        className="absolute right-0 top-9 z-50 w-56 overflow-hidden rounded-xl border shadow-xl"
+                        style={{ background: 'rgba(13,13,13,0.98)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
+                      >
+                        {ROTATION_MODES.map((m) => (
+                          <button
+                            key={m.value}
+                            onClick={() => { setRotationMode(m.value as RotationMode); setRotationOpen(false) }}
+                            className={cn(
+                              'flex w-full flex-col items-start px-3 py-2.5 text-left transition-colors duration-150',
+                              rotationMode === m.value ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]',
+                            )}
+                          >
+                            <span className={cn('text-xs font-semibold', rotationMode === m.value ? 'text-foreground' : 'text-muted-foreground')}>
+                              {m.label}
+                            </span>
+                            <span className="mt-0.5 text-[10px] text-muted-foreground/50">{m.description}</span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </PrefRow>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </SettingsGroup>
+
+      {/* Risk Engine */}
+      <SettingsGroup
+        title="Risk Engine"
+        description="Risk per trade and advisor settings"
+      >
+        <PrefRow label="Phase 1 — Risk Per Trade" description="% of account balance risked on each P1 trade">
+          <RiskInput value={riskP1} onChange={setRiskP1} />
+        </PrefRow>
+        <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <PrefRow label="Phase 2 — Risk Per Trade" description="% of account balance risked on each P2 trade">
+          <RiskInput value={riskP2} onChange={setRiskP2} />
+        </PrefRow>
+        <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <PrefRow label="Live — Risk Per Trade" description="% of account balance risked on each funded/live trade">
+          <RiskInput value={riskLive} onChange={setRiskLive} />
+        </PrefRow>
+        <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <PrefRow
+          label="Near Pass Threshold"
+          description="Flag an account as Near Pass when this % or less gain is needed to hit the target"
+        >
+          <ThresholdInput value={proximityThreshold} onChange={setProximityThreshold} />
+        </PrefRow>
+      </SettingsGroup>
     </div>
   )
 }
@@ -284,6 +483,7 @@ export function SettingsClient() {
             >
               {page === 'profile'       && <ProfilePage />}
               {page === 'preferences'   && <PreferencesPage />}
+              {page === 'execution'     && <ExecutionPage />}
               {page === 'security'      && <ComingSoonPage label="Security" />}
               {page === 'notifications' && <ComingSoonPage label="Notifications" />}
             </motion.div>

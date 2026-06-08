@@ -2,7 +2,8 @@
 
 import { useOptimistic, useTransition, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, LayoutGrid, List, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal } from 'lucide-react'
+import { Plus, LayoutGrid, List, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, FileDown, FileText, Loader2 } from 'lucide-react'
+import { exportTradesToCSV, exportTradesToPDF } from '@/lib/trade-export'
 import { Button } from '@/components/ui/button'
 import { TradeCampaignDashboard } from './TradeCampaignDashboard'
 import { TradeTable } from './TradeTable'
@@ -98,6 +99,7 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
   )
 
   const [view, setView]                         = useState<ViewMode>('gallery')
+  const [pdfLoading, setPdfLoading]             = useState(false)
   const [tradeModalOpen, setTradeModalOpen]     = useState(false)
   const [editing, setEditing]                   = useState<Trade | null>(null)
   const [childModalOpen, setChildModalOpen]     = useState(false)
@@ -351,7 +353,7 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
             </AnimatePresence>
           </div>
 
-          <Button onClick={openCreate} className="rounded-xl shadow-lg shadow-primary/25">
+<Button onClick={openCreate} className="rounded-xl shadow-lg shadow-primary/25">
             <Plus className="h-4 w-4" />
             Log Trade
           </Button>
@@ -387,6 +389,39 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
           </div>
         </div>
       </div>
+
+      {/* Export buttons — list view only */}
+      <AnimatePresence>
+        {view === 'list' && (
+          <motion.div
+            key="export-bar"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
+            exit={{ opacity: 0, y: -4, transition: { duration: 0.12 } }}
+            className="flex items-center gap-2"
+          >
+            <button
+              onClick={() => exportTradesToCSV(trades)}
+              className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Download CSV
+            </button>
+            <button
+              disabled={pdfLoading}
+              onClick={async () => {
+                setPdfLoading(true)
+                await exportTradesToPDF(trades)
+                setPdfLoading(false)
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground disabled:opacity-50"
+            >
+              {pdfLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              {pdfLoading ? 'Generating…' : 'Download PDF'}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {view === 'gallery' ? (
@@ -429,7 +464,7 @@ export function JournalClient({ initialTrades, accounts, confluences, symbols }:
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
           >
-            <TradeTable trades={trades} onRowClick={openEdit} />
+            <TradeTable trades={trades} onRowClick={openEdit} onDelete={handleDelete} />
           </motion.div>
         )}
       </AnimatePresence>
