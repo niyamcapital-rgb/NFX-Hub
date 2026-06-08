@@ -27,17 +27,6 @@ export async function signUpWithEmail(formData: FormData) {
   return { success: 'Check your email to confirm your account.' }
 }
 
-export async function signInWithGoogle() {
-  const supabase = await createClient()
-  if (!supabase) redirect('/')
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/auth/callback` },
-  })
-  if (error) return { error: error.message }
-  if (data.url) redirect(data.url)
-}
 
 export async function signOut() {
   const supabase = await createClient()

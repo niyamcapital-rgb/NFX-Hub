@@ -1,8 +1,9 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useTransition } from 'react'
-import { signInWithEmail, signUpWithEmail, signInWithGoogle } from '@/app/actions/auth-actions'
+import { useState, useTransition, useEffect } from 'react'
+import { signInWithEmail, signUpWithEmail } from '@/app/actions/auth-actions'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -11,6 +12,11 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const err = params.get('error')
+    if (err) setError(err)
+  }, [])
 
   async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -29,10 +35,13 @@ export default function LoginPage() {
   }
 
   async function handleGoogle() {
-    startTransition(async () => {
-      const result = await signInWithGoogle()
-      if (result?.error) setError(result.error)
+    const supabase = createClient()
+    if (!supabase) { setError('Supabase not configured'); return }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
+    if (error) setError(error.message)
   }
 
   return (
