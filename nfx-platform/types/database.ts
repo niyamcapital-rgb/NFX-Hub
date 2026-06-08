@@ -4,7 +4,7 @@
 export type AccountStatus = 'active' | 'passed' | 'blown' | 'paused'
 export type AccountPhase  = 'P1' | 'P2' | 'Funded'
 export type AccountGroup  = 'A' | 'B' | 'C' | 'D' | 'E'
-export type TradeType     = 'Swing' | 'Intraswing' | 'Intraday' | 'Manipulation'
+export type TradeType     = 'Swing' | 'Intraswing' | 'Intraday' | 'Manipulation' | 'Placeholder'
 export type TradeResult   = 'win' | 'loss' | 'breakeven' | 'pending'
 export type LegType       = 'Placeholder' | 'Swing' | 'ScaleIn'
 

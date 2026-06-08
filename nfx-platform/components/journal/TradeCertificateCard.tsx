@@ -1,6 +1,7 @@
 'use client'
 
 import { forwardRef } from 'react'
+import { useDateFormat } from '@/lib/date-format'
 import type { Trade } from '@/types/database'
 
 interface Props {
@@ -18,6 +19,7 @@ const RESULT_CONFIG = {
 
 export const TradeCertificateCard = forwardRef<HTMLDivElement, Props>(
   function TradeCertificateCard({ trade, displayRR, campaignRR }, ref) {
+    const { fmt } = useDateFormat()
     const cfg = RESULT_CONFIG[(trade.result ?? 'pending') as keyof typeof RESULT_CONFIG] ?? RESULT_CONFIG.pending
     const children = trade.children ?? []
     const isCampaign = trade.scale_in_enabled && children.length > 0
@@ -134,7 +136,7 @@ export const TradeCertificateCard = forwardRef<HTMLDivElement, Props>(
                   <>
                     <span style={f({ color: 'rgba(255,255,255,0.15)', fontSize: 12 })}>·</span>
                     <span style={f({ fontSize: 11, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.04em' })}>
-                      {trade.open_date}{trade.close_date ? ` → ${trade.close_date}` : ''}
+                      {fmt(trade.open_date)}{trade.close_date ? ` → ${fmt(trade.close_date)}` : ''}
                     </span>
                   </>
                 )}

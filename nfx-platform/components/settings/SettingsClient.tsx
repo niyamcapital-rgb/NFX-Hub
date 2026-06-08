@@ -1,205 +1,295 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import React from 'react'
-import { Plus, Trash2, Pencil } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { User, SlidersHorizontal, Shield, Bell, Camera, ChevronDown, Moon, Sun } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { upsertConfluence, deleteConfluence } from '@/app/actions/confluence-actions'
-import type { Confluence } from '@/types/database'
+import { useDateFormat, formatDate, type DateFormat } from '@/lib/date-format'
+import { useTheme, ACCENT_PRESETS } from '@/lib/theme'
 
-const PRESET_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
-  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
+type Page = 'profile' | 'preferences' | 'security' | 'notifications'
+
+const NAV: { id: Page; label: string; icon: React.ElementType }[] = [
+  { id: 'profile',       label: 'Profile',       icon: User },
+  { id: 'preferences',   label: 'Preferences',   icon: SlidersHorizontal },
+  { id: 'security',      label: 'Security',       icon: Shield },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
 ]
 
-interface Props {
-  confluences: Confluence[]
+const DATE_OPTIONS: { value: DateFormat; label: string; example: string }[] = [
+  { value: 'DMY', label: 'DD / MM / YYYY', example: formatDate('2026-06-07', 'DMY') },
+  { value: 'MDY', label: 'MM / DD / YYYY', example: formatDate('2026-06-07', 'MDY') },
+  { value: 'YMD', label: 'YYYY / MM / DD', example: formatDate('2026-06-07', 'YMD') },
+]
+
+function SettingsGroup({
+  title,
+  description,
+  children,
+  noPadding = false,
+}: {
+  title: string
+  description?: string
+  children: React.ReactNode
+  noPadding?: boolean
+}) {
+  return (
+    <div
+      className="rounded-xl border backdrop-blur-lg"
+      style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}
+    >
+      <div className="border-b px-5 py-4" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+      </div>
+      <div className={noPadding ? '' : 'space-y-4 p-5'}>{children}</div>
+    </div>
+  )
 }
 
-export function SettingsClient({ confluences: initialConfluences }: Props) {
-  const [isPending, startTransition] = useTransition()
-  const [confluences, setConfluences] = useState(initialConfluences)
-  const [editingId,   setEditingId]   = useState<string | null>(null)
-  const [cfName,      setCfName]      = useState('')
-  const [cfColor,     setCfColor]     = useState(PRESET_COLORS[0])
-  const [cfCategory,  setCfCategory]  = useState('')
-
-  function startEditConfluence(c: Confluence) {
-    setEditingId(c.id)
-    setCfName(c.name)
-    setCfColor(c.color)
-    setCfCategory(c.category ?? '')
-  }
-
-  function resetConfluenceForm() {
-    setEditingId(null)
-    setCfName('')
-    setCfColor(PRESET_COLORS[0])
-    setCfCategory('')
-  }
-
-  function handleSaveConfluence() {
-    if (!cfName.trim()) return
-    const fd = new FormData()
-    if (editingId) fd.set('id', editingId)
-    fd.set('name', cfName.trim())
-    fd.set('color', cfColor)
-    fd.set('category', cfCategory)
-
-    if (editingId) {
-      setConfluences((prev) =>
-        prev.map((c) => c.id === editingId ? { ...c, name: cfName.trim(), color: cfColor, category: cfCategory || null } : c)
-      )
-    } else {
-      const optimistic: Confluence = { id: `opt-${Date.now()}`, user_id: '', name: cfName.trim(), color: cfColor, category: cfCategory || null }
-      setConfluences((prev) => [...prev, optimistic])
-    }
-    resetConfluenceForm()
-    startTransition(async () => { await upsertConfluence(fd) })
-  }
-
-  function handleDeleteConfluence(id: string) {
-    setConfluences((prev) => prev.filter((c) => c.id !== id))
-    startTransition(async () => { await deleteConfluence(id) })
-  }
+function ProfilePage() {
+  const [avatar, setAvatar] = useState<string | null>(null)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-10">
-      {/* Page header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">Manage your confluence tags and trading configuration</p>
-      </div>
-
-      {/* Confluence tags section */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Confluence Tags</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">Color-coded tags applied to trades in the journal</p>
-        </div>
-
-        {/* Tag list */}
-        <div
-          className="overflow-hidden rounded-xl border"
-          style={{ background: 'rgba(1,9,22,0.8)', borderColor: 'rgba(255,255,255,0.08)' }}
-        >
-          {confluences.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No tags yet — create your first one below
-            </p>
-          ) : (
-            <ul className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              {confluences.map((c) => (
-                <li
-                  key={c.id}
-                  className={cn(
-                    'flex items-center justify-between px-5 py-3.5 transition-colors',
-                    editingId === c.id ? 'bg-primary/5' : 'hover:bg-white/[0.02]',
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-offset-1 ring-offset-[#010916]"
-                      style={{ background: c.color, '--tw-ring-color': `${c.color}40` } as React.CSSProperties}
-                    />
-                    <span className="text-sm font-medium">{c.name}</span>
-                    {c.category && (
-                      <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-muted-foreground">
-                        {c.category}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => startEditConfluence(c)}
-                      className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-foreground"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteConfluence(c.id)}
-                      disabled={isPending}
-                      className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-red-500/10 hover:text-red-400"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Form */}
-          <div className="space-y-4 border-t p-5" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-              {editingId ? 'Edit Tag' : 'New Tag'}
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="cf-name">Name</Label>
-                <Input
-                  id="cf-name"
-                  value={cfName}
-                  onChange={(e) => setCfName(e.target.value)}
-                  placeholder="e.g. Liquidity Sweep"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveConfluence()}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="cf-category">Category (optional)</Label>
-                <Input
-                  id="cf-category"
-                  value={cfCategory}
-                  onChange={(e) => setCfCategory(e.target.value)}
-                  placeholder="e.g. Structure"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Color</Label>
-              <div className="flex flex-wrap items-center gap-2.5">
-                {PRESET_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setCfColor(color)}
-                    className={cn(
-                      'h-8 w-8 rounded-full border-2 transition-all duration-150',
-                      cfColor === color ? 'scale-110 border-white shadow-lg' : 'border-transparent hover:scale-105',
-                    )}
-                    style={{ background: color, boxShadow: cfColor === color ? `0 0 12px ${color}60` : undefined }}
-                  />
-                ))}
-                <input
-                  type="color"
-                  value={cfColor}
-                  onChange={(e) => setCfColor(e.target.value)}
-                  className="h-8 w-8 cursor-pointer rounded-full border-2 border-transparent bg-transparent p-0 hover:scale-105"
-                  title="Custom color"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button
-                onClick={handleSaveConfluence}
-                disabled={isPending || !cfName.trim()}
-                className="flex-1 rounded-xl shadow-lg shadow-primary/20"
-              >
-                {isPending ? 'Saving…' : editingId ? 'Update Tag' : <><Plus className="mr-1.5 h-4 w-4" />Add Tag</>}
-              </Button>
-              {editingId && (
-                <Button variant="outline" onClick={resetConfluenceForm} className="rounded-xl">Cancel</Button>
-              )}
-            </div>
+    <div className="space-y-5">
+      <SettingsGroup title="Avatar" description="Your profile picture across NFX Hub">
+        <div className="flex items-center gap-5">
+          <div
+            className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border"
+            style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.10)' }}
+          >
+            {avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
+            ) : (
+              <User className="h-7 w-7 text-muted-foreground/30" />
+            )}
+          </div>
+          <div>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) setAvatar(URL.createObjectURL(file))
+                }}
+              />
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground">
+                <Camera className="h-3.5 w-3.5" />
+                Upload photo
+              </span>
+            </label>
+            <p className="mt-1.5 text-[11px] text-muted-foreground/40">JPG, PNG or WebP · max 2MB</p>
           </div>
         </div>
-      </section>
+      </SettingsGroup>
+
+      <SettingsGroup title="Profile" description="Your display name and bio">
+        <div className="space-y-1.5">
+          <Label htmlFor="username">Username</Label>
+          <Input id="username" placeholder="e.g. niyam" className="settings-input" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="bio">Bio</Label>
+          <textarea
+            id="bio"
+            rows={3}
+            placeholder="A short description of your trading style…"
+            className="settings-input w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground/40 focus:outline-none"
+          />
+        </div>
+        <Button className="rounded-xl shadow-lg shadow-primary/20">Save changes</Button>
+      </SettingsGroup>
+    </div>
+  )
+}
+
+function PrefRow({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-6 py-1">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  )
+}
+
+function PreferencesPage() {
+  const { format, setFormat } = useDateFormat()
+  const { theme, setTheme, accent, setAccent } = useTheme()
+  const [dateOpen, setDateOpen] = useState(false)
+  const activeDate = DATE_OPTIONS.find((o) => o.value === format) ?? DATE_OPTIONS[0]
+
+  return (
+    <div className="space-y-5">
+      <SettingsGroup title="Display" description="Appearance preferences across the platform">
+        {/* Theme */}
+        <PrefRow label="Theme" description="Switch between dark and light interface">
+          <div className="flex rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+            {(['dark', 'light'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTheme(t)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150',
+                  theme === t
+                    ? 'bg-white/10 text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {t === 'dark' ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
+                {t === 'dark' ? 'Dark' : 'Light'}
+              </button>
+            ))}
+          </div>
+        </PrefRow>
+
+        <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
+        {/* Accent colour */}
+        <PrefRow label="Accent Colour" description="Primary colour used for highlights and active states">
+          <div className="flex items-center gap-2">
+            {ACCENT_PRESETS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setAccent(p.value)}
+                title={p.label}
+                className={cn(
+                  'h-6 w-6 rounded-full border-2 transition-all duration-150',
+                  accent === p.value ? 'scale-110 border-white' : 'border-transparent hover:scale-105',
+                )}
+                style={{
+                  background: p.value,
+                  boxShadow: accent === p.value ? `0 0 10px ${p.value}60` : undefined,
+                }}
+              />
+            ))}
+          </div>
+        </PrefRow>
+
+        <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
+        {/* Date format */}
+        <PrefRow label="Date Format" description="How dates appear throughout the journal and dashboard">
+          <div className="relative">
+            {dateOpen && (
+              <div className="fixed inset-0 z-40" onClick={() => setDateOpen(false)} />
+            )}
+            <button
+              onClick={() => setDateOpen((o) => !o)}
+              className={cn(
+                'flex items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150',
+                dateOpen
+                  ? 'border-white/20 bg-white/[0.06] text-foreground'
+                  : 'border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground',
+              )}
+            >
+              {activeDate.label}
+              <ChevronDown className={cn('h-3 w-3 transition-transform duration-150', dateOpen && 'rotate-180')} />
+            </button>
+
+            <AnimatePresence>
+              {dateOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.15, ease: [0.23, 1, 0.32, 1] } }}
+                  exit={{ opacity: 0, y: -4, scale: 0.97, transition: { duration: 0.1 } }}
+                  className="absolute right-0 top-9 z-50 w-44 overflow-hidden rounded-xl border shadow-xl"
+                  style={{ background: 'rgba(13,13,13,0.98)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
+                >
+                  {DATE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setFormat(opt.value); setDateOpen(false) }}
+                      className={cn(
+                        'flex w-full items-center px-3 py-2.5 text-xs transition-colors duration-150',
+                        format === opt.value
+                          ? 'bg-white/[0.06] text-foreground'
+                          : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </PrefRow>
+      </SettingsGroup>
+    </div>
+  )
+}
+
+function ComingSoonPage({ label }: { label: string }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center rounded-xl border border-dashed py-24 text-center"
+      style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+    >
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xs text-muted-foreground/40">Coming soon</p>
+    </div>
+  )
+}
+
+export function SettingsClient() {
+  const [page, setPage] = useState<Page>('profile')
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Manage your profile and preferences</p>
+      </div>
+
+      <div className="flex gap-8">
+        {/* Left sub-nav */}
+        <nav className="w-40 shrink-0">
+          <ul className="space-y-0.5">
+            {NAV.map(({ id, label, icon: Icon }) => (
+              <li key={id}>
+                <button
+                  onClick={() => setPage(id)}
+                  className={cn(
+                    'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
+                    page === id
+                      ? 'bg-white/[0.07] text-foreground'
+                      : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* Content pane */}
+        <div className="min-w-0 flex-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={page}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
+              exit={{ opacity: 0, x: -8, transition: { duration: 0.12 } }}
+            >
+              {page === 'profile'       && <ProfilePage />}
+              {page === 'preferences'   && <PreferencesPage />}
+              {page === 'security'      && <ComingSoonPage label="Security" />}
+              {page === 'notifications' && <ComingSoonPage label="Notifications" />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   )
 }

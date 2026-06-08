@@ -28,13 +28,23 @@
   --color-input:              var(--input);
   --color-ring:               var(--ring);
 
+  /* Neon palette — use as text-neon-green, bg-electric-blue, border-neon-green, etc. */
+  --color-neon-green:         var(--neon-green);
+  --color-electric-blue:      var(--electric-blue);
+
+  /* Vault / Glassmorphism tokens */
+  --color-vault-dark:         var(--background);
+  --color-vault-glass:        var(--vault-glass);
+  --color-vault-border:       var(--vault-border);
+  --color-vault-accent:       var(--electric-blue);
+  --color-vault-success:      var(--neon-green);
+
   --radius-sm:  calc(var(--radius) - 4px);
   --radius-md:  calc(var(--radius) - 2px);
   --radius-lg:  var(--radius);
   --radius-xl:  calc(var(--radius) + 4px);
 
-  /* San Francisco system font stack — resolves to SF Pro on macOS/iOS, Segoe UI on Windows, Roboto on Android */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /*
@@ -43,47 +53,102 @@
  * Sourced from legacy_prototype css/main.css palette.
  */
 :root {
-  --radius: 1rem; /* 16px — iOS card radius */
+  --radius: 0.75rem;
 
   /* Easing curves */
   --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
-  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1); /* Expo.out — iOS spring feel */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --background:           #000815;
-  --foreground:           #ffffff;
+  /* ── Neon-Gamer palette ────────────────────────────────── */
+  --neon-green:           #39FF14;
+  --electric-blue:        #00d2ff;
 
-  --card:                 #010916;
-  --card-foreground:      #ffffff;
+  /* ── Semantic tokens ───────────────────────────────────── */
+  --background:           #050505;
+  --foreground:           #f0f0f0;
 
-  --popover:              #010916;
-  --popover-foreground:   #ffffff;
+  --card:                 #0d0d0d;
+  --card-foreground:      #f0f0f0;
 
-  --primary:              #3b82f6;
-  --primary-foreground:   #ffffff;
+  --popover:              #111111;
+  --popover-foreground:   #f0f0f0;
 
-  --secondary:            #181b26;
-  --secondary-foreground: #ffffff;
+  --primary:              #39FF14;   /* neon green — CTAs, active states, wins */
+  --primary-foreground:   #050505;   /* dark text on bright primary */
 
-  --muted:                #181b26;
-  --muted-foreground:     #8a8f9c;
+  --secondary:            #131313;
+  --secondary-foreground: #f0f0f0;
 
-  --accent:               #181b26;
-  --accent-foreground:    #ffffff;
+  --muted:                #131313;
+  --muted-foreground:     #6b7280;   /* gray-500 */
+
+  --accent:               #131313;
+  --accent-foreground:    #f0f0f0;
 
   --destructive:          #ef4444;
   --destructive-foreground: #ffffff;
 
-  --border:               #0a1b2e;
-  --input:                #0a1b2e;
-  --ring:                 #3b82f6;
+  --border:               #1c1c1c;   /* ~gray-800 */
+  --input:                #1c1c1c;
+  --ring:                 #39FF14;
 
-  /* Liquid glass design tokens */
-  --glass-surface: rgba(255, 255, 255, 0.04);
-  --glass-border:  rgba(255, 255, 255, 0.08);
-  --glass-shine:   rgba(255, 255, 255, 0.02);
-  --primary-glow:  rgba(59, 130, 246, 0.2);
+  /* ── Glassmorphism surface tokens ─────────────────────── */
+  --vault-glass:    rgba(255, 255, 255, 0.04); /* white-tint glass surface */
+  --vault-border:   rgba(255, 255, 255, 0.08); /* white-tint border */
+
+  /* ── Sidebar tokens ────────────────────────────────────── */
+  --sidebar-bg:     rgba(6, 6, 6, 0.92);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --nav-hover-bg:   rgba(255, 255, 255, 0.04);
+
+  /* ── Card solid — used for gradient fades that must match card bg ── */
+  --card-solid:     #0d0d0d;
+
+  /* ── Glow tokens ───────────────────────────────────────── */
+  --glass-surface:  rgba(255, 255, 255, 0.03);
+  --glass-border:   rgba(255, 255, 255, 0.06);
+  --glass-shine:    rgba(255, 255, 255, 0.01);
+  --primary-glow:   rgba(57, 255, 20, 0.15);
+  --neon-glow:      0 0 15px rgba(57, 255, 20, 0.10), 0 0 30px rgba(57, 255, 20, 0.04);
+  --blue-glow:      0 0 15px rgba(0, 210, 255, 0.10), 0 0 30px rgba(0, 210, 255, 0.04);
+}
+
+/* ── Light mode token overrides ───────────────────────────── */
+/* html[data-theme] beats :root (same element, attribute bumps specificity) */
+html[data-theme="light"] {
+  --background:           #f5f5f5;
+  --sidebar-bg:     rgba(248, 248, 248, 0.95);
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --nav-hover-bg:   rgba(0, 0, 0, 0.05);
+  --foreground:           #0a0a0a;
+  --card:                 #ffffff;
+  --card-foreground:      #0a0a0a;
+  --popover:              #f0f0f0;
+  --popover-foreground:   #0a0a0a;
+  --primary-foreground:   #ffffff;
+  --secondary:            #ebebeb;
+  --secondary-foreground: #0a0a0a;
+  --muted:                #ebebeb;
+  --muted-foreground:     #71717a;
+  --accent:               #ebebeb;
+  --accent-foreground:    #0a0a0a;
+  --border:               #e4e4e7;
+  --input:                #e4e4e7;
+  --vault-glass:  rgba(0, 0, 0, 0.04);
+  --vault-border: rgba(0, 0, 0, 0.08);
+  --glass-surface: rgba(0, 0, 0, 0.03);
+  --glass-border:  rgba(0, 0, 0, 0.06);
+  --card-solid:   #ffffff;
+}
+
+html[data-theme="light"] body {
+  background-image: radial-gradient(ellipse 80% 50% at 50% -5%, rgba(57, 255, 20, 0.06) 0%, transparent 65%);
+}
+
+html[data-theme="light"] body::after {
+  opacity: 0.012;
 }
 
 * {
@@ -98,11 +163,28 @@ html {
 
 body {
   background-color: var(--background);
-  /* Ambient top glow — Cinema Mobile depth */
-  background-image: radial-gradient(ellipse 100% 60% at 50% -10%, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  /* Ambient neon top glow — kept low opacity so it reads as depth, not decoration */
+  background-image: radial-gradient(ellipse 80% 50% at 50% -5%, rgba(57, 255, 20, 0.04) 0%, transparent 65%);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Neon glow utilities ─────────────────────────────────────
+   Use .glow-green or .glow-blue on cards/buttons for the
+   tasteful hover-glow described in the design system.        */
+.glow-green {
+  transition: box-shadow 200ms var(--ease-out);
+}
+.glow-green:hover {
+  box-shadow: var(--neon-glow);
+}
+
+.glow-blue {
+  transition: box-shadow 200ms var(--ease-out);
+}
+.glow-blue:hover {
+  box-shadow: var(--blue-glow);
 }
 
 /* Noise overlay — fixed, pointer-events-none so it never affects interaction */
@@ -116,6 +198,29 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 128px 128px;
+}
+
+/* Nav item hover — responds to light/dark via CSS variable */
+.nav-item:hover,
+.nav-signout-btn:hover {
+  background-color: var(--nav-hover-bg);
+}
+
+/* Electric blue focus — settings inputs */
+.settings-input:focus,
+.settings-input:focus-visible {
+  border-color: var(--electric-blue) !important;
+  box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.08) !important;
+  outline: none !important;
+}
+
+/* Date input — force dark calendar chrome */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+  cursor: pointer;
+}
+input[type="date"] {
+  color-scheme: dark;
 }
 
 /* Balance headings — prevents orphaned words on last line */

@@ -2,6 +2,7 @@
 
 import { CheckCircle, XCircle, MinusCircle, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useDateFormat } from '@/lib/date-format'
 import type { Trade } from '@/types/database'
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function TradeTable({ trades, onRowClick }: Props) {
+  const { fmt } = useDateFormat()
   if (trades.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-20 text-center">
@@ -44,13 +46,13 @@ export function TradeTable({ trades, onRowClick }: Props) {
                 onClick={() => onRowClick(t)}
                 className="cursor-pointer border-b border-border/30 transition-colors hover:bg-secondary/30 last:border-b-0"
               >
-                <td className="px-4 py-3 text-muted-foreground">{t.open_date}</td>
+                <td className="px-4 py-3 text-muted-foreground">{fmt(t.open_date)}</td>
                 <td className="px-4 py-3 font-medium">{t.symbol}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">{accounts.join(', ') || '—'}</td>
                 <td className="px-4 py-3">
                   {t.trade_type ? <Badge variant="secondary" className="text-[10px]">{t.trade_type}</Badge> : '—'}
                 </td>
-                <td className="px-4 py-3">{t.risk_reward ?? '—'}</td>
+                <td className="px-4 py-3 tabular-nums">{t.risk_reward ?? '—'}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     {t.result === 'win'       && <><CheckCircle className="h-3.5 w-3.5 text-emerald-400" /><span className="text-emerald-400 font-medium">Win</span></>}

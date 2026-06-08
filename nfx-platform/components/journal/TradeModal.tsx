@@ -170,7 +170,7 @@ interface Props {
   parentSymbol?: string
 }
 
-const TRADE_TYPES: TradeType[] = ['Swing', 'Intraswing', 'Intraday', 'Manipulation']
+const TRADE_TYPES: TradeType[] = ['Swing', 'Intraswing', 'Intraday', 'Manipulation', 'Placeholder']
 const LEG_TYPES: { value: LegType; label: string }[] = [
   { value: 'Placeholder', label: 'Placeholder' },
   { value: 'ScaleIn',     label: 'Scale-In'    },

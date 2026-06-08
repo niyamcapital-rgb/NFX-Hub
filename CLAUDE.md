@@ -244,16 +244,45 @@ shadcn/ui: manually configured via `components.json`. To add a new component, co
 
 ---
 
-## Design Tokens (globals.css)
+## Design System — Neon Gamer
+
+NFX uses a "Neon-Gamer" design language: near-black surfaces, neon green primary accent, electric blue secondary. All tokens live in `app/globals.css` under `:root` and `@theme inline`.
+
+**Never use `tailwind.config.js/ts`** — Tailwind v4 reads `@theme inline` in `globals.css` instead. Custom colors registered there (`--color-neon-green`, `--color-electric-blue`) become `text-neon-green`, `bg-neon-green`, `border-electric-blue`, etc.
+
+### Color Tokens (current)
 
 ```
---background: #000815    (page bg)
---card:       #010916    (card bg)
---border:     #0a1b2e
---primary:    #3b82f6    (blue accent)
---foreground: #ffffff
---muted-foreground: #8a8f9c
+--background:    #050505   page background
+--card:          #0d0d0d   card / surface background
+--border:        #1c1c1c   default border (≈ gray-800)
+--primary:       #39FF14   neon green — CTAs, wins, active states
+--neon-green:    #39FF14   alias exposed as text-neon-green / bg-neon-green
+--electric-blue: #00d2ff   secondary accent (text-electric-blue / bg-electric-blue)
+--foreground:    #f0f0f0
+--muted-foreground: #6b7280
 
+--neon-glow:  0 0 15px rgba(57,255,20,0.10), 0 0 30px rgba(57,255,20,0.04)
+--blue-glow:  0 0 15px rgba(0,210,255,0.10), 0 0 30px rgba(0,210,255,0.04)
+```
+
+### Glow Utilities
+
+Add class `glow-green` or `glow-blue` to any card or button to get a tasteful neon hover glow. These classes are defined in `globals.css` and use CSS `box-shadow` + `transition`.
+
+### Rules for new components
+
+- **Backgrounds:** use `bg-card` or `rgba(10,10,10,0.85)` for glass surfaces — never blue-tinted `rgba(1,9,22,…)`.
+- **Borders:** `border-border/40` (translucent token) or `rgba(255,255,255,0.08)` inline. Never `#0a1b2e`.
+- **Wins / positive values:** `text-emerald-400` (not neon-green — reserve primary for CTAs).
+- **Losses / negative values:** `text-red-400`.
+- **Accents / CTAs / active states:** `text-primary` / `bg-primary` / `text-neon-green`.
+- **Hover glow on interactive cards:** add `glow-green` class.
+- **Sidebar / drawer backgrounds:** `rgba(6,6,6,0.92)` or `rgba(6,6,6,0.96)` — never blue-tinted.
+
+### Easing Tokens
+
+```
 --ease-out:    cubic-bezier(0.23, 1, 0.32, 1)
 --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)
 --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)

@@ -85,11 +85,11 @@ export function OutlooksClient({ initialWeekly, initialDaily }: Props) {
 
   function openWeeklyCreate() { setEditingWeekly(null); setWeeklyModalOpen(true) }
   function openWeeklyEdit(o: WeeklyOutlook) { setEditingWeekly(o); setWeeklyModalOpen(true) }
-  function closeWeekly() { setWeeklyModalOpen(false); setEditingWeekly(null) }
+  function closeWeekly() { setWeeklyModalOpen(false) }
 
   function openDailyCreate() { setEditingDaily(null); setDailyModalOpen(true) }
   function openDailyEdit(o: DailyOutlook) { setEditingDaily(o); setDailyModalOpen(true) }
-  function closeDaily() { setDailyModalOpen(false); setEditingDaily(null) }
+  function closeDaily() { setDailyModalOpen(false) }
 
   function handleSaveWeekly(formData: FormData) {
     const id = formData.get('id') as string | null

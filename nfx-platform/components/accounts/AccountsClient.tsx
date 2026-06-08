@@ -1,7 +1,7 @@
 'use client'
 
 import { useOptimistic, useTransition, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -62,7 +62,7 @@ export function AccountsClient({ initialAccounts, trades }: Props) {
 
   function openCreate() { setEditing(null); setModalOpen(true) }
   function openEdit(a: Account) { setEditing(a); setModalOpen(true) }
-  function closeModal() { setModalOpen(false); setEditing(null) }
+  function closeModal() { setModalOpen(false) }
 
   function handleSave(formData: FormData) {
     const id = formData.get('id') as string | null
@@ -109,16 +109,19 @@ export function AccountsClient({ initialAccounts, trades }: Props) {
         </div>
       ) : (
         <motion.div
+          key="account-grid"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
           className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
         >
-          {filtered.map((a) => (
-            <motion.div key={a.id} variants={staggerItem}>
-              <AccountCard account={a} trades={trades} onClick={openEdit} />
-            </motion.div>
-          ))}
+          <AnimatePresence mode="popLayout">
+            {filtered.map((a) => (
+              <motion.div key={a.id} variants={staggerItem} layout>
+                <AccountCard account={a} trades={trades} onClick={openEdit} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </motion.div>
       )}
 

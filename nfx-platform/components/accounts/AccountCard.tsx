@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { cardHover } from '@/lib/motion'
 import { buildEquityCurve } from '@/lib/equity-curve'
+import { useDateFormat } from '@/lib/date-format'
 import type { Account, Trade } from '@/types/database'
 
 interface Props {
@@ -29,9 +30,6 @@ const statusColor: Record<string, string> = {
   paused: 'text-zinc-400 border-zinc-500/20 bg-zinc-500/10',
 }
 
-function fmtDate(d: string) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 function fmtPct(v: number) {
   const sign = v > 0 ? '+' : ''
@@ -44,19 +42,20 @@ interface ChartTooltipProps {
 }
 
 function ChartTooltip({ active, payload }: ChartTooltipProps) {
+  const { fmt } = useDateFormat()
   if (!active || !payload?.length) return null
   const { date, pct } = payload[0].payload
   return (
     <div
       style={{
-        background: '#010916',
-        border: '1px solid #0a1b2e',
+        background: '#0d0d0d',
+        border: '1px solid #1c1c1c',
         borderRadius: 6,
         padding: '5px 9px',
         fontSize: 11,
       }}
     >
-      <p style={{ color: '#8a8f9c', marginBottom: 2 }}>{fmtDate(date)}</p>
+      <p style={{ color: '#8a8f9c', marginBottom: 2 }}>{fmt(date)}</p>
       <p style={{ color: pct >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
         {fmtPct(pct)}
       </p>
@@ -112,8 +111,15 @@ export function AccountCard({ account, trades, onClick }: Props) {
   const domain: [number, number] = [yMin - yPad, yMax + yPad]
 
   return (
-    <motion.div {...cardHover} className="cursor-pointer" onClick={() => onClick(account)}>
-      <div className="rounded-lg border border-border/50 bg-card p-5 transition-shadow hover:shadow-lg hover:shadow-black/30">
+    <motion.div
+      {...cardHover}
+      inherit={false}
+      className="cursor-pointer"
+      onClick={() => onClick(account)}
+    >
+      <div
+        className="rounded-xl border border-border/50 bg-card p-5 transition-all duration-300 glow-green"
+      >
 
         {/* Header */}
         <div className="mb-3 flex items-start justify-between">
@@ -224,7 +230,7 @@ export function AccountCard({ account, trades, onClick }: Props) {
             <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 className="h-full rounded-full bg-primary"
-                style={{ width: `${progress}%`, transition: 'width 0.6s ease' }}
+                style={{ width: `${progress}%`, transition: 'width 0.6s cubic-bezier(0.23, 1, 0.32, 1)' }}
               />
             </div>
             <p className="mt-1 text-xs font-medium">{progress.toFixed(1)}%</p>
@@ -234,7 +240,7 @@ export function AccountCard({ account, trades, onClick }: Props) {
             <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 className={`h-full rounded-full ${ddUsed > 70 ? 'bg-red-500' : ddUsed > 40 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                style={{ width: `${ddUsed}%`, transition: 'width 0.6s ease' }}
+                style={{ width: `${ddUsed}%`, transition: 'width 0.6s cubic-bezier(0.23, 1, 0.32, 1)' }}
               />
             </div>
             <p className="mt-1 text-xs font-medium">{ddUsed.toFixed(1)}%</p>

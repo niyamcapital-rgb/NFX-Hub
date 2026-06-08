@@ -23,7 +23,7 @@ export function NavItem({ href, label, icon: Icon }: NavItemProps) {
         'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors',
         isActive
           ? 'font-medium text-primary'
-          : 'font-normal text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
+          : 'nav-item font-normal text-muted-foreground hover:text-foreground',
       )}
     >
       {/* Shared layout pill — spring-slides between active routes */}

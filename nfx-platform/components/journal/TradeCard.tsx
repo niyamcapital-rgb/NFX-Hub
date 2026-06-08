@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, MinusCircle, Clock, GitBranch } from 'lucide-reac
 import { cardHover } from '@/lib/motion'
 import { calcCumulativeRR, calcTotalRisk } from '@/lib/scale-in'
 import { cn } from '@/lib/utils'
+import { useDateFormat } from '@/lib/date-format'
 import type { Trade } from '@/types/database'
 
 interface Props {
@@ -27,6 +28,7 @@ const ResultIcon = ({ result }: { result: string | null }) => {
 }
 
 export function TradeCard({ trade, onClick }: Props) {
+  const { fmt }      = useDateFormat()
   const confluences  = trade.trade_confluences?.map((tc) => tc.confluences!).filter(Boolean) ?? []
   const hasChart     = trade.entry_chart_url || trade.dxy_chart_url
   const rs           = RESULT_STYLES[(trade.result ?? 'pending') as keyof typeof RESULT_STYLES] ?? RESULT_STYLES.pending
@@ -40,15 +42,14 @@ export function TradeCard({ trade, onClick }: Props) {
     <motion.div {...cardHover} onClick={() => onClick(trade)} className="cursor-pointer">
       <div
         className={cn(
-          'overflow-hidden rounded-xl border transition-shadow duration-300',
-          'bg-[rgba(1,9,22,0.8)] backdrop-blur-md',
-          'hover:shadow-xl hover:shadow-blue-950/60',
+          'overflow-hidden rounded-xl border border-border/50 transition-shadow duration-300',
+          'bg-card',
+          'hover:shadow-xl',
           rs.shadow,
         )}
-        style={{ borderColor: 'rgba(255,255,255,0.08)' }}
       >
         {/* Chart preview */}
-        <div className="relative h-40 w-full overflow-hidden bg-white/[0.03]">
+        <div className="relative h-40 w-full overflow-hidden bg-secondary/30">
           {hasChart ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={trade.entry_chart_url || trade.dxy_chart_url || ''} alt="Chart" className="h-full w-full object-cover" />
@@ -78,7 +79,7 @@ export function TradeCard({ trade, onClick }: Props) {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate text-[15px] font-semibold tracking-tight">{trade.symbol}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{trade.open_date}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{fmt(trade.open_date)}</p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1.5">
               {displayRR !== null && displayRR !== undefined && (
@@ -90,13 +91,13 @@ export function TradeCard({ trade, onClick }: Props) {
                 </div>
               )}
               {totalRisk !== null && (
-                <div className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.04] px-2 py-0.5">
+                <div className="flex items-center gap-1 rounded-full border border-border/60 bg-secondary/30 px-2 py-0.5">
                   <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground/50">Risk</span>
                   <span className="font-mono text-[10px] font-semibold tabular-nums text-amber-400/80">{totalRisk.toFixed(2)}×</span>
                 </div>
               )}
               {trade.trade_type && (
-                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <span className="rounded-full bg-secondary/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                   {trade.trade_type}
                 </span>
               )}
@@ -115,7 +116,7 @@ export function TradeCard({ trade, onClick }: Props) {
                 </span>
               ))}
               {confluences.length > 3 && (
-                <span className="inline-block rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-muted-foreground">
+                <span className="inline-block rounded-full bg-secondary/50 px-2 py-0.5 text-[10px] text-muted-foreground">
                   +{confluences.length - 3}
                 </span>
               )}
